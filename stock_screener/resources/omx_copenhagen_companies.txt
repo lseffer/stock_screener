@@ -1,0 +1,147 @@
+Carlsberg A	CARL A	DKK	DK0010181676	Consumer Goods	3500	
+Carlsberg B	CARL B	DKK	DK0010181759	Consumer Goods	3500	
+Chr. Hansen Holding	CHR	DKK	DK0060227585	Health Care	4500	
+Coloplast B	COLO B	DKK	DK0060448595	Health Care	4500	
+Danske Bank	DANSKE	DKK	DK0010274414	Financials	8300	
+DONG Energy	DENERG	DKK	DK0060094928	Utilities	7500	
+DFDS	DFDS	DKK	DK0060655629	Industrials	2700	
+DSV	DSV	DKK	DK0060079531	Industrials	2700	
+FLSmidth & Co.	FLS	DKK	DK0010234467	Industrials	2300	
+G4S plc	G4S	DKK	GB00B01FLG62	Industrials	2700	
+Genmab	GEN	DKK	DK0010272202	Health Care	4500	
+GN Store Nord	GN	DKK	DK0010272632	Health Care	4500	
+ISS	ISS	DKK	DK0060542181	Industrials	2700	
+Jyske Bank	JYSK	DKK	DK0010307958	Financials	8300	
+Københavns Lufthavne	KBHL	DKK	DK0010201102	Industrials	2700	
+Lundbeck	LUN	DKK	DK0010287234	Health Care	4500	
+A.P. Møller - Mærsk A	MAERSK A	DKK	DK0010244425	Industrials	2700	
+A.P. Møller - Mærsk B	MAERSK B	DKK	DK0010244508	Industrials	2700	
+Nordea Bank	NDA DKK	DKK	SE0000427361	Financials	8300	
+NKT Holding	NKT	DKK	DK0010287663	Industrials	2700	
+Novo Nordisk B	NOVO B	DKK	DK0060534915	Health Care	4500	
+Novozymes B	NZYM B	DKK	DK0060336014	Health Care	4500	
+Össur	OSSR	DKK	IS0000000040	Health Care	4500	
+Pandora	PNDORA	DKK	DK0060252690	Consumer Goods	3700	
+Royal UNIBREW	RBREW	DKK	DK0060634707	Consumer Goods	3500	
+Rockwool Int. A	ROCK A	DKK	DK0010219070	Industrials	2300	
+Rockwool Int. B	ROCK B	DKK	DK0010219153	Industrials	2300	
+SimCorp	SIM	DKK	DK0060495240	Technology	9500	
+Scandinavian Tobacco Group	STG	DKK	DK0060696300	Consumer Goods	3700	
+Sydbank	SYDB	DKK	DK0010311471	Financials	8300	
+TDC	TDC	DKK	DK0060228559	Telecommunications	6500	
+Topdanmark	TOP	DKK	DK0060477503	Financials	8500	
+Tryg	TRYG	DKK	DK0060636678	Financials	8500	
+Vestas Wind Systems	VWS	DKK	DK0010268606	Oil & Gas	0500	
+William Demant Holding	WDH	DKK	DK0060738599	Health Care	4500	
+ALK-Abelló B	ALK B	DKK	DK0060027142	Health Care	4500	
+Alm. Brand	ALMB	DKK	DK0015250344	Financials	8500	
+Ambu	AMBU B	DKK	DK0060591204	Health Care	4500	
+Bavarian Nordic	BAVA	DKK	DK0015998017	Health Care	4500	
+Bang & Olufsen	BO	DKK	DK0010218429	Consumer Goods	3700	
+D/S Norden	DNORD	DKK	DK0060083210	Industrials	2700	
+Brdr.Hartmann	HART	DKK	DK0010256197	Industrials	2700	
+Højgaard Holding A	HOEJ A	DKK	DK0010255892	Industrials	2300	
+Højgaard Holding B	HOEJ B	DKK	DK0010255975	Industrials	2300	
+IC Group	IC	DKK	DK0010221803	Consumer Goods	3700	
+Jeudan	JDAN	DKK	DK0010171362	Financials	8600	
+Jutlander Bank	JUTBK	DKK	DK0060050045	Financials	8300	
+Matas	MATAS	DKK	DK0060497295	Consumer Services	5300	
+NNIT	NNIT	DKK	DK0060580512	Technology	9500	
+Nordjyske Bank	NORDJB	DKK	DK0060034353	Financials	8300	
+Onxeo	ONXEO	DKK	FR0010095596	Health Care	4500	
+Per Aarsleff Holding B	PAAL B	DKK	DK0060700516	Industrials	2300	
+Ringkjøbing Landbobank	RILBA	DKK	DK0060032068	Financials	8300	
+SAS	SAS DKK	DKK	SE0003366871	Consumer Services	5700	
+Schouw & Co.	SCHO	DKK	DK0010253921	Industrials	2700	
+Solar B	SOLAR B	DKK	DK0010274844	Industrials	2700	
+Sparekassen Sjælland-Fyn	SPKSJF	DKK	DK0060670776	Financials	8300	
+Spar Nord Bank	SPNO	DKK	DK0060036564	Financials	8300	
+Tivoli A/S	TIV	DKK	DK0060726743	Consumer Services	5700	
+TORM A	TRMD A	DKK	GB00BZ3CNK81	Industrials	2700	
+United Int. Enterprises	UIE	DKK	BSP951331318	Consumer Goods	3500	
+Veloxis Pharmaceuticals	VELO	DKK	DK0060048148	Health Care	4500	
+Vestjysk Bank	VJBA	DKK	DK0010304500	Financials	8300	
+Zealand Pharma	ZEAL	DKK	DK0060257814	Health Care	4500	
+AaB	AAB	DKK	DK0010247014	Consumer Services	5700	
+Admiral Capital B	ADMCAP B	DKK	DK0060052843	Financials	8600	
+Andersen & Martini B	AM B	DKK	DK0010283597	Consumer Services	5300	
+Brdr. A & O Johansen præf.	AOJ P	DKK	DK0010231018	Industrials	2700	
+Arkil Holding B	ARKIL B	DKK	DK0010025113	Industrials	2300	
+Asgaard Group	ASGGRO	DKK	DK0010131309	Financials	8600	
+Atlantic Petroleum	ATLA DKK	DKK	FO000A0DN9X4	Oil & Gas	0500	
+Brøndby IF	BIF	DKK	DK0010247956	Consumer Services	5700	
+BioPorto	BIOPOR	DKK	DK0011048619	Health Care	4500	
+Blue Vision	BLVIS	DKK	DK0060700359	Financials	8600	
+BankNordik	BNORDIK CSE	DKK	FO0000000088	Financials	8300	
+F.E. Bording B	BORD B	DKK	DK0010008028	Industrials	2700	
+CBRAIN	CBRAIN	DKK	DK0060030286	Technology	9500	
+Cemat	CEMAT	DKK	DK0010271584	Technology	9500	
+ChemoMetec	CHEMM	DKK	DK0060055861	Health Care	4500	
+Columbus	COLUM	DKK	DK0010268366	Technology	9500	
+Copenhagen Capital	CPHCAP	DKK	DK0060093607	Financials	8700	
+Copenhagen Network	CPHNW	DKK	DK0060055515	Technology	9500	
+Danske Andelskassers Bank	DAB	DKK	DK0060299063	Financials	8300	
+Dantax	DANT	DKK	DK0015205637	Consumer Goods	3700	
+Dansk Industri Invest	DII	DKK	DK0010223692	Industrials	2300	
+Djurslands Bank	DJUR	DKK	DK0060136273	Financials	8300	
+DLH	DLH	DKK	DK0060038933	Industrials	2700	
+Egetæpper B	EGE B	DKK	DK0060458206	Consumer Goods	3700	
+Euroinvestor.com	EI	DKK	DK0060074656	Consumer Services	5500	
+Aarhus Elite B	ELITE B	DKK	DK0010263722	Consumer Services	5700	
+Erria	ERRIA	DKK	DK0060101483	Industrials	2700	
+Expedit B	EXP B	DKK	DK0015312474	Consumer Goods	3700	
+Fast Ejendom Danmark	FED	DKK	DK0060522746	Financials	8600	
+FirstFarms	FFARMS	DKK	DK0060056166	Consumer Goods	3500	
+Flügger B	FLUG B	DKK	DK0010218189	Industrials	2300	
+Fynske Bank	FYNBK	DKK	DK0060520377	Financials	8300	
+Gabriel Holding	GABR	DKK	DK0060124691	Consumer Goods	3700	
+German High Street Properties	GERHSP B	DKK	DK0060093524	Financials	8600	
+Greentech Energy Systems	GES	DKK	DK0010240514	Utilities	7500	
+Glunz & Jensen	GJ	DKK	DK0010249309	Industrials	2700	
+Grønlandsbanken	GRLA	DKK	DK0010230630	Financials	8300	
+Gyldendal A	GYLD A	DKK	DK0010247527	Consumer Services	5500	
+Gyldendal B	GYLD B	DKK	DK0010247600	Consumer Services	5500	
+Harboes Bryggeri B	HARB B	DKK	DK0060014751	Consumer Goods	3500	
+H+H International	HH	DKK	DK0015202451	Industrials	2300	
+Hvidbjerg Bank	HVID	DKK	DK0060135978	Financials	8300	
+InterMail B	IMAIL B	DKK	DK0010212224	Industrials	2700	
+Brd. Klee B	KLEE B	DKK	DK0010129089	Industrials	2700	
+Kreditbanken	KRE	DKK	DK0010253764	Financials	8300	
+Lån og Spar Bank	LASP	DKK	DK0010201532	Financials	8300	
+Land & Leisure A	LL A	DKK	DK0010243534	Consumer Services	5700	
+Land & Leisure B	LL B	DKK	DK0010240860	Consumer Services	5700	
+Lollands Bank	LOLB	DKK	DK0060000107	Financials	8300	
+Luxor B	LUXOR B	DKK	DK0010213628	Financials	8700	
+Migatronic B	MIGA B	DKK	DK0010225127	Industrials	2700	
+Møns Bank	MNBA	DKK	DK0060133841	Financials	8300	
+Mols-Linien	MOLS	DKK	DK0060135465	Consumer Services	5700	
+Monb.& Thor. B	MT B	DKK	DK0010224310	Industrials	2300	
+NeuroSearch	NEUR	DKK	DK0010224666	Health Care	4500	
+Newcap Holding	NEWCAP	DKK	DK0010212570	Financials	8700	
+Nordic Blue Invest	NOBIN	DKK	DK0016017171	Consumer Services	5700	
+Nordic Shipholding	NORDIC	DKK	DK0060083996	Oil & Gas	0500	
+North Media	NORTHM	DKK	DK0010270347	Consumer Services	5500	
+Nordicom	NRDC	DKK	DK0010158500	Financials	8600	
+Nordfyns Bank	NRDF	DKK	DK0010015072	Financials	8300	
+NTR Holding B	NTR B	DKK	DK0010027671	Industrials	2700	
+Østjydsk Bank	OJBA	DKK	DK0010017607	Financials	8300	
+PARKEN Sport & Entertainment	PARKEN	DKK	DK0010237643	Consumer Services	5700	
+Prime Office	PRIMOF	DKK	DK0060137594	Financials	8600	
+Roblon B	RBLN B	DKK	DK0060485019	Industrials	2700	
+Rias B	RIAS B	DKK	DK0010125848	Industrials	2700	
+SSBV-Rovsing	ROV	DKK	DK0060400398	Industrials	2700	
+RTX	RTX	DKK	DK0010267129	Technology	9500	
+Salling Bank	SALB	DKK	DK0010017367	Financials	8300	
+Sanistål	SANI	DKK	DK0010245661	Consumer Services	5300	
+Scandinavian Brake Systems	SBS	DKK	DK0060042612	Consumer Goods	3300	
+Small Cap Danmark	SCD	DKK	DK0010305077	Financials	8700	
+Santa Fe Group	SFG	DKK	DK0010006329	Industrials	2700	
+Silkeborg IF Invest	SIF	DKK	DK0010128008	Consumer Services	5700	
+SKAKO	SKAKO	DKK	DK0010231877	Industrials	2700	
+Skjern Bank	SKJE	DKK	DK0010295922	Financials	8300	
+Scandinavian Private Equity	SPEAS	DKK	DK0060068682	Financials	8700	
+SP Group	SPG	DKK	DK0010244771	Basic Materials	1300	
+Strategic Investments	STRINV	DKK	DK0010271238	Financials	8700	
+TK Development	TKDV	DKK	DK0010258995	Financials	8600	
+Totalbanken	TOTA	DKK	DK0060082758	Financials	8300	
+Victoria Properties	VIPRO	DKK	DK0015216675	Financials	8600	

@@ -1,0 +1,138 @@
+asd oyj	AMEAS	EUR	FI0009000285	Consumer Goods	3700	
+Cargotec Oyj	CGCBV	EUR	FI0009013429	Industrials	2700	
+Citycon Oyj	CTY1S	EUR	FI0009002471	Financials	8600	
+Elisa Oyj	ELI1V	EUR	FI0009007884	Telecommunications	6500	
+Fiskars Oyj Abp	FIS1V	EUR	FI0009000400	Consumer Goods	3700	
+Fortum Oyj	FUM1V	EUR	FI0009007132	Utilities	7500	
+Huhtamäki Oyj	HUH1V	EUR	FI0009000459	Industrials	2700	
+Konecranes Oyj	KCR1V	EUR	FI0009005870	Industrials	2700	
+Kesko Oyj A	KESAV	EUR	FI0009007900	Consumer Services	5300	
+Kesko Oyj B	KESBV	EUR	FI0009000202	Consumer Services	5300	
+KONE Oyj	KNEBV	EUR	FI0009013403	Industrials	2700	
+Kemira Oyj	KRA1V	EUR	FI0009004824	Basic Materials	1300	
+Metso Oyj	MEO1V	EUR	FI0009007835	Industrials	2700	
+Metsä Board A	METSA	EUR	FI0009000640	Basic Materials	1700	
+Metsä Board B	METSB	EUR	FI0009000665	Basic Materials	1700	
+Nordea Bank AB FDR	NDA1V	EUR	FI0009902530	Financials	8300	
+Neste Corporation	NESTE	EUR	FI0009013296	Oil & Gas	0500	
+Nokia Oyj	NOKIA	EUR	FI0009000681	Technology	9500	
+Nokia Oyj Uudet 2016	NOKIAM0116	EUR	FI4000188768	Technology	9500	
+Nokian Renkaat Oyj	NRE1V	EUR	FI0009005318	Consumer Goods	3300	
+Orion A	ORNAV	EUR	FI0009014369	Health Care	4500	
+Orion B	ORNBV	EUR	FI0009014377	Health Care	4500	
+Outokumpu Oyj	OUT1V	EUR	FI0009002422	Basic Materials	1700	
+Sampo A	SAMAS	EUR	FI0009003305	Financials	8500	
+Sponda Oyj	SDA1V	EUR	FI0009006829	Financials	8600	
+SSAB A	SSABAH	EUR	SE0000171100	Basic Materials	1700	
+SSAB B	SSABBH	EUR	SE0000120669	Basic Materials	1700	
+Stora Enso A	STEAV	EUR	FI0009005953	Basic Materials	1700	
+Stora Enso R	STERV	EUR	FI0009005961	Basic Materials	1700	
+Tieto Oyj	TIE1V	EUR	FI0009000277	Technology	9500	
+Telia Company	TELIA1	EUR	SE0000667925	Telecommunications	6500	
+UPM-Kymmene Oyj	UPM1V	EUR	FI0009005987	Basic Materials	1700	
+Valmet Oyj	VALMT	EUR	FI4000074984	Industrials	2700	
+Wärtsilä Oyj Abp	WRT1V	EUR	FI0009003727	Industrials	2700	
+Ahlstrom Oyj	AHL1V	EUR	FI0009010391	Basic Materials	1700	
+Aktia Bank A	AKTAV	EUR	FI4000058870	Financials	8300	
+Aktia Bank R	AKTRV	EUR	FI4000058888	Financials	8300	
+Ålandsbanken Abp A	ALBAV	EUR	FI0009000103	Financials	8300	
+Ålandsbanken Abp B	ALBBV	EUR	FI0009001127	Financials	8300	
+Alma Media Oyj	ALN1V	EUR	FI0009013114	Consumer Services	5500	
+Aspo Oyj	ASU1V	EUR	FI0009008072	Industrials	2700	
+Asiakastieto Group	ATG1V	EUR	FI4000123195	Financials	8700	
+Atria Oyj A	ATRAV	EUR	FI0009006548	Consumer Goods	3500	
+Basware Oyj	BAS1V	EUR	FI0009008403	Technology	9500	
+Bittium Oyj	BITTI	EUR	FI0009007264	Technology	9500	
+Caverion Oyj	CAV1V	EUR	FI4000062781	Industrials	2700	
+Cramo Oyj	CRA1V	EUR	FI0009900476	Industrials	2700	
+Finnair Oyj	FIA1S	EUR	FI0009003230	Consumer Services	5700	
+Finnlines Oyj	FLG1S	EUR	FI0009003644	Industrials	2700	
+F-Secure Oyj	FSC1V	EUR	FI0009801310	Technology	9500	
+HKScan Oyj A	HKSAV	EUR	FI0009006308	Consumer Goods	3500	
+Lassila & Tikanoja	LAT1V	EUR	FI0009010854	Industrials	2700	
+Lemminkäinen Oyj	LEM1S	EUR	FI0009900336	Industrials	2300	
+Munksjö Oyj	MUNK1	EUR	FI4000048418	Basic Materials	1700	
+Oriola-KD A	OKDAV	EUR	FI0009014344	Health Care	4500	
+Oriola-KD B	OKDBV	EUR	FI0009014351	Health Care	4500	
+Olvi Oyj A	OLVAS	EUR	FI0009900401	Consumer Goods	3500	
+Outotec Oyj	OTE1V	EUR	FI0009014575	Industrials	2700	
+Pihlajalinna	PIHLIS	EUR	FI4000092556	Health Care	4500	
+PKC Group Oyj	PKC1V	EUR	FI0009006381	Industrials	2700	
+Ponsse 1	PON1V	EUR	FI0009005078	Industrials	2700	
+Pöyry Oyj	POY1V	EUR	FI0009006696	Industrials	2700	
+Raisio Oyj Vaihto-osake	RAIVV	EUR	FI0009002943	Consumer Goods	3500	
+Rapala VMC	RAP1V	EUR	FI0009007355	Consumer Goods	3700	
+Revenio Group Oyj	REG1V	EUR	FI0009010912	Health Care	4500	
+Ramirent Oyj	RMR1V	EUR	FI0009007066	Industrials	2700	
+Sanoma Oyj	SAA1V	EUR	FI0009007694	Consumer Services	5500	
+SRV Yhtiöt Oyj	SRV1V	EUR	FI0009015309	Industrials	2300	
+Stockmann Oyj Abp A	STCAS	EUR	FI0009000236	Consumer Services	5300	
+Stockmann Oyj Abp B	STCBV	EUR	FI0009000251	Consumer Services	5300	
+Suominen	SUY1V	EUR	FI0009010862	Consumer Goods	3700	
+Taaleri	TAALA	EUR	FI4000062195	Financials	8700	
+Tikkurila Oyj	TIK1V	EUR	FI4000008719	Industrials	2300	
+Technopolis Oyj	TPS1V	EUR	FI0009006886	Financials	8600	
+Uponor Oyj	UNR1V	EUR	FI0009002158	Industrials	2300	
+Vaisala Oyj A	VAIAS	EUR	FI0009900682	Industrials	2700	
+Viking Line Abp	VIK1V	EUR	FI0009005250	Consumer Services	5700	
+YITOyj	YTY1V	EUR	FI0009800643	Industrials	2300	
+Aspocomp Group Oyj	ACG1V	EUR	FI0009008080	Industrials	2700	
+Afarak Group	AFAGR	EUR	FI0009800098	Basic Materials	1700	
+Affecto Oyj	AFE1V	EUR	FI0009013312	Technology	9500	
+Apetit	APETI	EUR	FI0009003503	Consumer Goods	3500	
+Biohit Oyj B	BIOBV	EUR	FI0009005482	Health Care	4500	
+Biotie Therapies Oyj	BTH1V	EUR	FI0009011571	Health Care	4500	
+Consti Yhtiöt Oyj	CONSTI	EUR	FI4000178256	Industrials	2700	
+CapMan Oyj B	CPMBV	EUR	FI0009009377	Financials	8700	
+Componenta Oyj	CTH1V	EUR	FI0009010110	Industrials	2700	
+Comptel Oyj	CTL1V	EUR	FI0009008221	Technology	9500	
+Digia Oyj	DIG1V	EUR	FI0009007983	Technology	9500	
+Dovre Group	DOV1V	EUR	FI0009008098	Industrials	2700	
+Efore Oyj	EFO1V	EUR	FI0009900054	Industrials	2700	
+Elecster Oyj A	ELEAV	EUR	FI0009900658	Industrials	2700	
+Endomines	ENDOM	EUR	SE0001803131	Basic Materials	1700	
+eQ Oyj	EQV1V	EUR	FI0009009617	Financials	8700	
+Etteplan Oyj	ETT1V	EUR	FI0009008650	Industrials	2700	
+Evli Pankki	EVLI	EUR	FI4000170915	Financials	8300	
+Exel Composites Oyj	EXL1V	EUR	FI0009007306	Industrials	2700	
+Glaston Oyj Abp	GLA1V	EUR	FI0009010219	Industrials	2300	
+Honkarakenne B	HONBS	EUR	FI0009900104	Consumer Goods	3700	
+Incap Oyj	ICP1V	EUR	FI0009006407	Industrials	2700	
+Innofactor Plc	IFA1V	EUR	FI0009007637	Technology	9500	
+Ilkka-Yhtymä 2	ILK2S	EUR	FI0009800205	Consumer Services	5500	
+Investors House	INVEST	EUR	FI0009900559	Financials	8600	
+Kesla A	KELAS	EUR	FI0009900237	Industrials	2700	
+Keskisuomalainen A	KSLAV	EUR	FI0009007546	Consumer Services	5500	
+Martela A	MARAS	EUR	FI0009900385	Consumer Goods	3700	
+Marimekko Oyj	MMO1V	EUR	FI0009007660	Consumer Goods	3700	
+Neo Industrial	NEO1V	EUR	FI0009800296	Industrials	2700	
+Nurminen Logistics Oyj	NLG1V	EUR	FI0009900187	Industrials	2700	
+Norvestia Oyj	NORVE	EUR	FI0009000160	Financials	8700	
+Okmetic Oyj	OKM1V	EUR	FI0009009054	Technology	9500	
+Orava Asuntorahasto Oyj	OREIT	EUR	FI4000068614	Financials	8600	
+Orava Asuntorahasto uudet	OREITN0116	EUR	FI4000197942	Financials	8600	
+Kotipizza Group	PIZZA	EUR	FI4000157235	Consumer Services	5700	
+Pohjois-Karjalan Kirjapaino	PKK1V	EUR	FI0009900468	Consumer Services	5500	
+Panostaja Oyj	PNA1V	EUR	FI0009800379	Financials	8700	
+QPR Software Oyj	QPR1V	EUR	FI0009008668	Technology	9500	
+Restamax Oyj	RESTA	EUR	FI4000064332	Consumer Services	5700	
+Raute Oyj A	RUTAV	EUR	FI0009004741	Industrials	2700	
+Saga Furs C	SAGCV	EUR	FI0009800551	Consumer Goods	3700	
+Sievi Capital	SCI1V	EUR	FI0009008924	Financials	8700	
+Scanfil Oyj	SCL1V	EUR	FI4000029905	Industrials	2700	
+Soprano Oyj	SOPRA	EUR	FI0009012793	Technology	9500	
+Sotkamo Silver	SOSI1	EUR	SE0001057910	Basic Materials	1700	
+SSH Communications Security	SSH1V	EUR	FI0009008270	Technology	9500	
+Solteq Oyj	STQ1V	EUR	FI0009007991	Technology	9500	
+Takoma Oyj	TAM1V	EUR	FI0009901110	Industrials	2700	
+Tecnotree Oyj	TEM1V	EUR	FI0009010227	Technology	9500	
+Teleste Oyj	TLT1V	EUR	FI0009007728	Technology	9500	
+Talvivaaran Kaivososakeyhtiö	TLV1V	EUR	FI0009014716	Basic Materials	1700	
+Trainers´ House Oyj	TRH1V	EUR	FI0009008122	Technology	9500	
+Talentum Oyj	TTM1V	EUR	FI0009900898	Consumer Services	5500	
+Tulikivi Oyj A	TULAV	EUR	FI0009900583	Industrials	2300	
+Uutechnic Group	UUTEC	EUR	FI0009900708	Industrials	2700	
+Valoe	VALOE	EUR	FI0009006951	Industrials	2700	
+Wulff-Yhtiöt Oyj	WUF1V	EUR	FI0009008452	Industrials	2700	
+Ixonos Oyj	XNS1V	EUR	FI0009008007	Technology	9500	
+Yleiselektroniikka E	YLEPS	EUR	FI0009900724	Industrials	2700

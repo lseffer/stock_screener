@@ -214,18 +214,24 @@ def combinedata(keystatsframe,financialsframe,pricedataframe):
 def screencolumns(exch_final):
     exch_final.fillna(0.0,inplace=True)
 #     exch_final['COMPBOOKVALUE']=exch_final['ASSETS']-exch_final['LIABILITIES']-exch_final['INTANGIBLEASSETS']-exch_final['GOODWILL']
-    exch_final['BV']=exch_final['BASIC_NOS2']*exch_final['BOOKVALUEPERSHARE*1']
-    exch_final['EV']=exch_final['BASIC_NOS2']*exch_final['EOY_PRICE3']+exch_final['SHORT-TERMDEBT1']+exch_final['LONG-TERMDEBT1']-exch_final['CASHANDCASHEQUIVALENTS2']
+#     exch_final['BV']=exch_final['BASIC_NOS2']*exch_final['BOOKVALUEPERSHARE*1']
+    try:
+        exch_final['EV']=exch_final['BASIC_NOS2']*exch_final['EOY_PRICE3']+exch_final['SHORT-TERMDEBT1']+exch_final['LONG-TERMDEBT1']-exch_final['CASHANDCASHEQUIVALENTS2']
+    except:
+        try:
+            exch_final['EV']=exch_final['BASIC_NOS2']*exch_final['EOY_PRICE3']+exch_final['SHORT-TERMDEBT1']+exch_final['LONG-TERMDEBT1']-exch_final['CASH2']
+        except:
+            exch_final['EV']=exch_final['BASIC_NOS2']*exch_final['EOY_PRICE3']+exch_final['SHORT-TERMDEBT1']+exch_final['LONG-TERMDEBT1']
     exch_final['EV']=np.where((exch_final['BASIC_NOS2']==0) | (exch_final['EOY_PRICE3']==0),0,exch_final['EV'])
-    exch_final['BOOKTOMARKET']=exch_final['BV']/exch_final['EV']
+#     exch_final['BOOKTOMARKET']=exch_final['BV']/exch_final['EV']
     exch_final['EARNINGSYIELD']=exch_final['EBITDA2']/exch_final['EV']
     exch_final['EARNINGSYIELD']=np.where(exch_final['EARNINGSYIELD']==np.inf,0,exch_final['EARNINGSYIELD'])
 
-    exch_final['EBIT']=exch_final['REVENUE2']-exch_final['OPERATINGEXPENSES2']
-    exch_final['EARNINGSYIELD2']=exch_final['EBIT']/exch_final['EV']
-    exch_final['EARNINGSYIELD3']=exch_final['EARNINGSPERSHARE1']/exch_final['EOY_PRICE3']
+#     exch_final['EBIT']=exch_final['REVENUE2']-exch_final['OPERATINGEXPENSES2']
+#     exch_final['EARNINGSYIELD2']=exch_final['EBIT']/exch_final['EV']
+#     exch_final['EARNINGSYIELD3']=exch_final['EARNINGSPERSHARE1']/exch_final['EOY_PRICE3']
 
-    exch_final['ROCE']=exch_final['EBITDA2']/(exch_final['ASSETS2']-exch_final['TOTALCURRENTLIABILITIES1'])
+#     exch_final['ROCE']=exch_final['EBITDA2']/(exch_final['ASSETS2']-exch_final['TOTALCURRENTLIABILITIES1'])
 
     exch_final['P-SCORE_1']=np.where(exch_final['RETURNONASSETS%1']>0,1,0)
     exch_final['P-SCORE_2']=np.where(exch_final['OPERATINGCASHFLOWMIL1']>0,1,0)

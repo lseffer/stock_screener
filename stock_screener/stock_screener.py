@@ -32,7 +32,7 @@ currencies = set([
 'ZMW', 'ZWD'     
 ])
 
-def get_listed_companyinfo(url_list):
+def get_listed_company_info(url_list):
     stock_info = []
     for index, url in enumerate(url_list):    
         resp = requests.get(url)
@@ -45,12 +45,36 @@ def get_listed_companyinfo(url_list):
 
     return pd.DataFrame(data=stock_info, columns=columns).drop_duplicates().fillna('Unknown') 
 
-def get_keyratios(isin_list)
+def get_keyratios(isin_list):
     kr = gm.KeyRatiosDownloader()
-    for isin in isin_list:
-        kr_list = kr.download(isin)
-
-
+    nr_of_stocks = len(isin_list)
+    nr_failed = 0
+    for index, isin in enumerate(isin_list):
+        kr_list = []
+        if index == 0:
+            print('Fetching key ratios...')
+        try:
+            kr_list = kr.download(isin)
+        except ValueError:
+            nr_failed += 1
+            continue
+        for kr_index, frame in enumerate(kr_list):
+            cols = frame.transpose().columns.values
+            new_cols = [(lambda x: '_'.join([word.lower() for word in x.split(' ') if word not in currencies]))(col) for col in cols]
+            temporary_frame = frame.copy().transpose()
+            temporary_frame.columns = new_cols
+            temporary_frame.index = temporary_frame.index.year
+            if kr_index == 0:
+                isin_frame = pd.DataFrame(index=temporary_frame.index)
+            isin_frame = pd.merge(isin_frame, temporary_frame, left_index=True, right_index=True, how='outer')
+        isin_frame.insert(0,'isin',isin)
+        if index == 0:
+            output_frame = pd.DataFrame(columns=isin_frame.columns)
+        output_frame = pd.concat([output_frame, isin_frame])
+        if index % 10 == 0:
+            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
+    print('Done!')
+    return output_frame
 
 
 

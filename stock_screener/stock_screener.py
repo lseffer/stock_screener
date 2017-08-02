@@ -39,11 +39,22 @@ def get_listed_company_info(url_list):
         soup = bs.BeautifulSoup(resp.text, 'lxml')
         table = soup.find('table',{'id' : 'listedCompanies'})
         if index==0:
-            columns = [header.string for header in table.findAll('th')[:-1]]
+            columns = ['_'.join(header.string.lower().split(' ')) for header in table.findAll('th')[:-1]]
         for row in table.findAll('tr')[1:]:
             stock_info.append([cell.string for cell in row.findChildren('td')[:-1]])
-
-    return pd.DataFrame(data=stock_info, columns=columns).drop_duplicates().fillna('Unknown') 
+    output_frame = pd.DataFrame(data=stock_info, columns=columns).drop_duplicates().fillna('Unknown')
+    output_frame['yahoo_ticker'] = output_frame.apply(lambda x: x['symbol'].replace(' ','-')+'.CO' if x['isin'][:2]=='DK' 
+                else x['symbol'].replace(' ','-')+'.ST' if x['isin'][:2]=='SE' 
+                else x['symbol'].replace(' ','-')+'.HE' if x['isin'][:2]=='FI' 
+                else x['symbol'].replace(' ','-').replace('o','')+'.OL' if x['isin'][:2]=='NO' 
+                else x['symbol'].replace(' ','-')+'.CO' if x['currency']=='DKK' 
+                else x['symbol'].replace(' ','-')+'.CO' if x['currency']=='ISK'
+                else x['symbol'].replace(' ','-')+'.ST' if x['currency']=='SEK'
+                else x['symbol'].replace(' ','-')+'.HE' if x['currency']=='EUR'
+                else x['symbol'].replace(' ','-').replace('o','')+'.OL' if x['currency']=='NOK'
+                else ''
+                , axis=1)
+    return output_frame[output_frame['symbol'].apply(lambda x: x.split(' ')[-1]!='A')]
 
 def get_keyratios(isin_list):
     kr = gm.KeyRatiosDownloader()
@@ -76,12 +87,62 @@ def get_keyratios(isin_list):
     print('Done!')
     return output_frame
 
+def piotroski_score(dataframe):
+    output_frame = dataframe.copy()
+    output_frame['p_score_1'] = np.where(output_frame['return_on_assets_%']>0,1,0)
+    output_frame['p_score_2'] = np.where(output_frame['operating_cash_flow_mil']>0,1,0)
+    output_frame['p_score_3'] = np.where(output_frame.groupby('isin')['return_on_assets_%'].shift(0)>output_frame.groupby('isin')['return_on_assets_%'].shift(1),1,0)
+    output_frame['p_score_4'] = np.where(output_frame['operating_cash_flow_mil']>output_frame['net_income_mil'],1,0)
+    output_frame['p_score_5'] = np.where(output_frame.groupby('isin')['long-term_debt'].shift(0)<output_frame.groupby('isin')['long-term_debt'].shift(1),1,0)
+    output_frame['p_score_6'] = np.where(output_frame.groupby('isin')['current_ratio'].shift(0)>output_frame.groupby('isin')['current_ratio'].shift(1),1,0)
+    output_frame['p_score_7'] = np.where(output_frame.groupby('isin')['shares_mil'].shift(0)<=output_frame.groupby('isin')['shares_mil'].shift(1),1,0)
+    output_frame['p_score_8'] = np.where(output_frame.groupby('isin')['gross_margin_%'].shift(0)>output_frame.groupby('isin')['gross_margin_%'].shift(1),1,0)
+    output_frame['p_score_9'] = np.where(output_frame.groupby('isin')['asset_turnover'].shift(0)>output_frame.groupby('isin')['asset_turnover'].shift(1),1,0)
+    output_frame['p_score'] = np.sum(output_frame[['p_score_1', 'p_score_2', 'p_score_3', 'p_score_4', 'p_score_5', 'p_score_6', 'p_score_7', 'p_score_8', 'p_score_9']], axis=1)
+    return output_frame
 
+def get_valuation_ratios(yahoo_tickers):
+    params = {"formatted": "false",
+                "lang": "en-US",
+                "region": "US",
+                "modules": "summaryDetail,financialData,price",
+                "corsDomain": "finance.yahoo.com"}
+    columns = ['']
+    nr_of_stocks = len(yahoo_tickers)
+    nr_failed = 0
+    out_cols = ['ebitda','totalcash','totaldebt','marketcap','trailingpe','forwardpe','recommendationkey']
+    out_frame = pd.DataFrame(columns=out_cols)
+    print('Fetching valuation ratios...')
+    for index, ticker in enumerate(yahoo_tickers):
+        r = requests.get("https://query1.finance.yahoo.com/v10/finance/quoteSummary/{}".format(ticker), params=params)
+        data = r.json()
+        try:
+            flattened_resp = {key.lower():val for d in list(data['quoteSummary']['result'][0].values()) for key,val in d.items()}
+        except (KeyError):
+            nr_failed += 1
+            continue
+        if flattened_resp['symbol'].lower()==ticker.lower():
+            ticker_dict = {}
+            ticker_dict['yahoo_ticker'] = ticker.upper()
+            for element in out_cols:
+                try:
+                    ticker_dict[element] = flattened_resp[element]
+                except (KeyError, IndexError):
+                    ticker_dict[element] = np.nan
+        else:
+            nr_failed += 1
+            continue
+        out_frame = out_frame.append(pd.Series(ticker_dict), ignore_index=True)
+        if index % 10 == 0:
+            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
+    print('Done!')
+    out_frame['ev'] = out_frame['marketcap']+out_frame['totaldebt']-out_frame['totalcash']
+    out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
+    return out_frame
 
-
-
-def main():
+def stock_screener():
+    parser = argparse.ArgumentParser()
 
 
 if __name__=='__main__':
-    main()
+    stock_screener()

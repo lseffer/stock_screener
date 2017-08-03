@@ -1,8 +1,10 @@
-import argparse, requests, os
+import argparse, requests, os, datetime, gspread
 import good_morning as gm
 import pandas as pd
 import numpy as np
 import bs4 as bs
+from df2gspread import df2gspread as d2g
+from oauth2client.service_account import ServiceAccountCredentials
 
 url_list = [
     'http://www.nasdaqomxnordic.com/aktier/listed-companies/copenhagen',
@@ -70,6 +72,8 @@ def get_keyratios(isin_list):
             nr_failed += 1
             continue
         for kr_index, frame in enumerate(kr_list):
+            if kr_index not in [0,2,8,9,10]:
+                continue
             cols = frame.transpose().columns.values
             new_cols = [(lambda x: '_'.join([word.lower() for word in x.split(' ') if word not in currencies]))(col) for col in cols]
             temporary_frame = frame.copy().transpose()
@@ -81,7 +85,11 @@ def get_keyratios(isin_list):
         isin_frame.insert(0,'isin',isin)
         if index == 0:
             output_frame = pd.DataFrame(columns=isin_frame.columns)
-        output_frame = pd.concat([output_frame, isin_frame])
+        try:
+            output_frame = pd.concat([output_frame, isin_frame])
+        except AssertionError:
+            nr_failed += 1
+            continue
         if index % 10 == 0:
             print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
     print('Done!')
@@ -118,7 +126,7 @@ def get_valuation_ratios(yahoo_tickers):
         data = r.json()
         try:
             flattened_resp = {key.lower():val for d in list(data['quoteSummary']['result'][0].values()) for key,val in d.items()}
-        except (KeyError):
+        except (KeyError, TypeError):
             nr_failed += 1
             continue
         if flattened_resp['symbol'].lower()==ticker.lower():
@@ -126,7 +134,10 @@ def get_valuation_ratios(yahoo_tickers):
             ticker_dict['yahoo_ticker'] = ticker.upper()
             for element in out_cols:
                 try:
-                    ticker_dict[element] = flattened_resp[element]
+                    if isinstance(flattened_resp[element], dict):
+                        ticker_dict[element] = np.nan
+                    else:
+                        ticker_dict[element] = flattened_resp[element]
                 except (KeyError, IndexError):
                     ticker_dict[element] = np.nan
         else:
@@ -140,9 +151,73 @@ def get_valuation_ratios(yahoo_tickers):
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
     return out_frame
 
+def upload_df(df, spreadsheet_name, sheet_name, sac_file='C://Users/Leonard/stock-screener-upload-564566500422.json'):
+    google_spreadsheet = spreadsheet_name
+    wks_name = sheet_name
+    scope = ['https://spreadsheets.google.com/feeds']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(sac_file, scope)
+    gc = gspread.authorize(credentials)
+    workbook = gc.open(google_spreadsheet)
+    print('Uploading to workbook={}, worksheet={}...'.format(google_spreadsheet,wks_name))
+    if wks_name in [sheet.title for sheet in workbook.worksheets()]:
+        workbook.del_worksheet(workbook.worksheet(wks_name))
+    worksheet = workbook.add_worksheet(title=wks_name, rows=df.shape[0]+10, cols=df.shape[1]+1)
+    worksheet.insert_row(['processyear']+list(df.columns.values),index=1)
+    start_col = 1
+    end_col = df.shape[1]+1
+    start_row = 2
+    end_row = df.shape[0]+1
+    cell_range = '{col_i}{row_i}:{col_f}{row_f}'.format(
+        col_i=chr((start_col-1) + ord('A')),    
+        col_f=chr((end_col-1) + ord('A')),      
+        row_i=start_row,
+        row_f=end_row)
+    cells = np.array(worksheet.range(cell_range)).reshape(end_row-start_row+1,end_col-start_col+1)
+    for cell_index in np.ndindex(cells.shape):
+        if cell_index[1] == 0:
+            cells[cell_index].value = df.index[cell_index[0]]
+        else:
+            cells[cell_index].value = df.iloc[cell_index[0], cell_index[1]-1]
+    worksheet.update_cells(cells.reshape(-1,1).flatten().tolist())
+
 def stock_screener():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Screen Nordic stocks for winners. Using data on disk, if exists.')
+    parser.add_argument('--keystats', help='Forces keystats scrape (takes a long time)', action='store_true')
+    parser.add_argument('--pyear', type=int, help='Process year, default last year.', default=datetime.date.today().year-1)
+    args = parser.parse_args()
 
+    if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')):
+        if args.keystats:
+            old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'))
+            screened = list(old_df[old_df.index==args.pyear]['isin'].unique())
+            not_screened = list(old_df[~old_df['isin'].isin(screened)]['isin'].unique() )
+            screened_df = old_df[old_df['isin'].isin(screened)]
+            keystats_df_ns = get_keyratios(not_screened)
+            keystats_df_ns = keystats_df_ns[keystats_df_ns.index<=args.pyear]
+            p_score_df_ns = piotroski_score(keystats_df_ns)
+            p_score_df = pd.concat([screened_df, p_score_df_ns])
+        else:
+            p_score_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0)
+    else:
+        listed_companies_df = get_listed_company_info(url_list)
+        keystats_df = get_keyratios(list(listed_companies_df['isin'].unique()))
+        keystats_df = keystats_df[keystats_df.index<=args.pyear]
+        p_score_df = piotroski_score(keystats_df)
+        if not os.path.exists(os.path.join(os.getcwd(),'stock_data')):
+            os.makedirs(os.path.join(os.getcwd(),'stock_data'))
+        p_score_df = pd.merge(p_score_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index')
+        p_score_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
+    p_score_df = p_score_df[(p_score_df.index==args.pyear) & (p_score_df['p_score']>=7)]
+    valuation_ratios = get_valuation_ratios(list(p_score_df['yahoo_ticker'].unique()))
+    screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
+    # screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
+    screened_stocks_output.loc[:,'rank'] = (screened_stocks_output['trailingpe']*screened_stocks_output['ev_ebitda_ratio']*(1/screened_stocks_output['p_score'])*(1/screened_stocks_output['return_on_invested_capital_%'])).to_frame().rank().replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
+    screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
 
+    google_spreadsheet = 'stock_screener_results'
+    wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')
+    upload_df(screened_stocks_output, google_spreadsheet, wks_name)
+    
 if __name__=='__main__':
     stock_screener()

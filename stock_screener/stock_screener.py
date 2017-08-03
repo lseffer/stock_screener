@@ -185,7 +185,6 @@ def stock_screener():
     parser.add_argument('--keystats', help='Forces keystats scrape (takes a long time)', action='store_true')
     parser.add_argument('--pyear', type=int, help='Process year, default last year.', default=datetime.date.today().year-1)
     args = parser.parse_args()
-
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')):
         if args.keystats:
             old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'))
@@ -210,11 +209,10 @@ def stock_screener():
     p_score_df = p_score_df[(p_score_df.index==args.pyear) & (p_score_df['p_score']>=7)]
     valuation_ratios = get_valuation_ratios(list(p_score_df['yahoo_ticker'].unique()))
     screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
-    # screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
+    screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
     screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
     screened_stocks_output.loc[:,'rank'] = (screened_stocks_output['trailingpe']*screened_stocks_output['ev_ebitda_ratio']*(1/screened_stocks_output['p_score'])*(1/screened_stocks_output['return_on_invested_capital_%'])).to_frame().rank().replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
-
     google_spreadsheet = 'stock_screener_results'
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')
     upload_df(screened_stocks_output, google_spreadsheet, wks_name)

@@ -1,0 +1,8 @@
+gspread==0.6.2
+good_morning==0.1.0
+pandas==0.18.1
+df2gspread==0.2.4
+numpy==1.11.1
+requests==2.11.1
+beautifulsoup4==4.6.0
+google_api_python_client==1.6.2

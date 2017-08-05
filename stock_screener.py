@@ -185,7 +185,7 @@ def stock_screener():
     parser.add_argument('--keystats', help='Forces keystats scrape (takes a long time)', action='store_true')
     parser.add_argument('--pyear', type=int, help='Process year, default last year.', default=datetime.date.today().year-1)
     parser.add_argument('--sac_file', help='Path to Google Service Account Credential json file.')
-    parser.add_argument('--gspreadheet', help='Name or ID of spreadsheet in your google drive')
+    parser.add_argument('--gspreadsheet', help='Name or ID of spreadsheet in your google drive')
     args = parser.parse_args()
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')):
         if args.keystats:
@@ -215,7 +215,7 @@ def stock_screener():
     screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
     screened_stocks_output.loc[:,'rank'] = (screened_stocks_output['trailingpe']*screened_stocks_output['ev_ebitda_ratio']*(1/screened_stocks_output['p_score'])*(1/screened_stocks_output['return_on_invested_capital_%'])).to_frame().rank().replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
-    google_spreadsheet = args.gspreadheet
+    google_spreadsheet = args.gspreadsheet
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')
     upload_df(screened_stocks_output, google_spreadsheet, wks_name, sac_file=args.sac_file)
     

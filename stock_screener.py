@@ -62,10 +62,11 @@ def get_keyratios(isin_list):
     kr = gm.KeyRatiosDownloader()
     nr_of_stocks = len(isin_list)
     nr_failed = 0
+    print('Fetching key ratios...')
     for index, isin in enumerate(isin_list):
+        if index % 10 == 0:
+            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
         kr_list = []
-        if index == 0:
-            print('Fetching key ratios...')
         try:
             kr_list = kr.download(isin)
         except ValueError:
@@ -90,13 +91,11 @@ def get_keyratios(isin_list):
         except AssertionError:
             nr_failed += 1
             continue
-        if index % 10 == 0:
-            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
     print('Done!')
     return output_frame
 
-def piotroski_score(dataframe):
-    output_frame = dataframe.copy()
+def piotroski_score(df):
+    output_frame = df.copy()
     output_frame['p_score_1'] = np.where(output_frame['return_on_assets_%']>0,1,0)
     output_frame['p_score_2'] = np.where(output_frame['operating_cash_flow_mil']>0,1,0)
     output_frame['p_score_3'] = np.where(output_frame.groupby('isin')['return_on_assets_%'].shift(0)>output_frame.groupby('isin')['return_on_assets_%'].shift(1),1,0)
@@ -122,6 +121,8 @@ def get_valuation_ratios(yahoo_tickers):
     out_frame = pd.DataFrame(columns=out_cols)
     print('Fetching valuation ratios...')
     for index, ticker in enumerate(yahoo_tickers):
+        if index % 10 == 0:
+            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
         r = requests.get("https://query1.finance.yahoo.com/v10/finance/quoteSummary/{}".format(ticker), params=params)
         data = r.json()
         try:
@@ -144,11 +145,10 @@ def get_valuation_ratios(yahoo_tickers):
             nr_failed += 1
             continue
         out_frame = out_frame.append(pd.Series(ticker_dict), ignore_index=True)
-        if index % 10 == 0:
-            print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
     print('Done!')
     out_frame['ev'] = out_frame['marketcap']+out_frame['totaldebt']-out_frame['totalcash']
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
+    out_frame['marketcap_sci'] = out_frame['marketcap'].apply(lambda x: '{:.2E}'.format(x))
     return out_frame
 
 def upload_df(df, spreadsheet_name, sheet_name, sac_file=''):
@@ -189,7 +189,7 @@ def stock_screener():
     args = parser.parse_args()
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')):
         if args.keystats:
-            old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'))
+            old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0)
             screened = list(old_df[old_df.index==args.pyear]['isin'].unique())
             not_screened = list(old_df[~old_df['isin'].isin(screened)]['isin'].unique() )
             screened_df = old_df[old_df['isin'].isin(screened)]
@@ -212,7 +212,7 @@ def stock_screener():
     valuation_ratios = get_valuation_ratios(list(p_score_df['yahoo_ticker'].unique()))
     screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
     screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
-    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
     screened_stocks_output.loc[:,'rank'] = (screened_stocks_output['trailingpe']*screened_stocks_output['ev_ebitda_ratio']*(1/screened_stocks_output['p_score'])*(1/screened_stocks_output['return_on_invested_capital_%'])).to_frame().rank().replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet

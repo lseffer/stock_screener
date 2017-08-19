@@ -106,18 +106,34 @@ def piotroski_score(df):
     output_frame['p_score_8'] = np.where(output_frame.groupby('isin')['gross_margin_%'].shift(0)>output_frame.groupby('isin')['gross_margin_%'].shift(1),1,0)
     output_frame['p_score_9'] = np.where(output_frame.groupby('isin')['asset_turnover'].shift(0)>output_frame.groupby('isin')['asset_turnover'].shift(1),1,0)
     output_frame['p_score'] = np.sum(output_frame[['p_score_1', 'p_score_2', 'p_score_3', 'p_score_4', 'p_score_5', 'p_score_6', 'p_score_7', 'p_score_8', 'p_score_9']], axis=1)
+    output_frame['rank_piotroski'] = output_frame['p_score'].rank(method='min', ascending=False).replace(np.nan,df.shape[0]+1).values
     return output_frame
+
+def magic_formula(df):
+    output_frame = df.copy()
+    output_frame['magic_formula_score'] = ((1/output_frame['ev_ebitda_ratio']).clip(0,None)*output_frame['return_on_invested_capital_%'].clip(0,None)).replace(np.inf,0)
+    output_frame['rank_magic_formula'] = output_frame[['magic_formula_score']].rank(method='min', ascending=False).replace(np.nan,df.shape[0]+1).values
+    return output_frame
+
+def oshaugnessy_value_composite(df):
+    output_frame = df.copy()
+    output_frame['price_to_sales'] = output_frame['marketcap'] / output_frame['revenue_mil']
+    output_frame['price_to_cash_flow'] = output_frame['marketcap'] / output_frame['operating_cash_flow_mil']
+    output_frame['shareholder_yield'] = ((output_frame.groupby('isin')['shares_mil'].shift(0)/output_frame.groupby('isin')['shares_mil'].shift(1)-1) + (output_frame['currentprice'] / output_frame['dividends'])).replace(np.inf,0).fillna(0).clip(0,None)
+    output_frame['oshaugnessy_score'] = (output_frame['pricetobook'].fillna(1) * output_frame['trailingpe'].fillna(1) * output_frame['price_to_sales'].fillna(1) * output_frame['price_to_cash_flow'].fillna(1) * (1/output_frame['shareholder_yield'].fillna(1)))
+    output_frame['rank_oshaugnessy'] = output_frame[['magic_formula_score']].rank(method='min', ascending=True).replace(np.nan,df.shape[0]+1).values
+    return output_frame    
 
 def get_valuation_ratios(yahoo_tickers):
     params = {"formatted": "false",
                 "lang": "en-US",
                 "region": "US",
-                "modules": "summaryDetail,financialData,price",
+                "modules": "summaryDetail,financialData,price,defaultKeyStatistics",
                 "corsDomain": "finance.yahoo.com"}
     columns = ['']
     nr_of_stocks = len(yahoo_tickers)
     nr_failed = 0
-    out_cols = ['ebitda','totalcash','totaldebt','marketcap','trailingpe','forwardpe','recommendationkey']
+    out_cols = ['ebitda','currentprice','pricetobook','totalcash','totaldebt','marketcap','trailingpe','forwardpe','recommendationkey']
     out_frame = pd.DataFrame(columns=out_cols)
     print('Fetching valuation ratios...')
     for index, ticker in enumerate(yahoo_tickers):
@@ -212,8 +228,10 @@ def stock_screener():
     valuation_ratios = get_valuation_ratios(list(p_score_df['yahoo_ticker'].unique()))
     screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
     screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
-    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','p_score','return_on_invested_capital_%']]
-    screened_stocks_output.loc[:,'rank'] = (screened_stocks_output['trailingpe']*screened_stocks_output['ev_ebitda_ratio']*(1/screened_stocks_output['p_score'])*(1/screened_stocks_output['return_on_invested_capital_%'])).to_frame().rank().replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
+    screened_stocks = magic_formula(screened_stocks)
+    screened_stocks = oshaugnessy_value_composite(screened_stocks)
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','rank_piotroski','rank_magic_formula','rank_oshaugnessy']]
+    screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='min', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1)[0].values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')

@@ -119,9 +119,9 @@ def oshaugnessy_value_composite(df):
     output_frame = df.copy()
     output_frame['price_to_sales'] = output_frame['marketcap'] / output_frame['revenue_mil']
     output_frame['price_to_cash_flow'] = output_frame['marketcap'] / output_frame['operating_cash_flow_mil']
-    output_frame['shareholder_yield'] = ((output_frame.groupby('isin')['shares_mil'].shift(0)/output_frame.groupby('isin')['shares_mil'].shift(1)-1) + (output_frame['currentprice'] / output_frame['dividends'])).replace(np.inf,0).fillna(0).clip(0,None)
-    output_frame['oshaugnessy_score'] = ((1/output_frame['ev_ebitda_ratio']).clip(0,None) * (1/output_frame['pricetobook']).clip(0,None) * (1/output_frame['trailingpe']).clip(0,None) * (1/output_frame['price_to_sales']).clip(0,None) * (1/output_frame['price_to_cash_flow']).clip(0,None) * output_frame['shareholder_yield'])
-    output_frame['rank_oshaugnessy'] = output_frame[['magic_formula_score']].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['shareholder_yield'] = (((output_frame.groupby('isin')['shares_mil'].shift(1)-output_frame.groupby('isin')['shares_mil'].shift(0))/output_frame.groupby('isin')['shares_mil'].shift(1)) + (output_frame['dividends'] / output_frame['currentprice'])).fillna(0)
+    output_frame['oshaugnessy_score'] = (output_frame['ev_ebitda_ratio'].rank(method='dense', ascending=True) + output_frame['pricetobook'].rank(method='dense', ascending=True) + output_frame['trailingpe'].rank(method='dense', ascending=True) + output_frame['price_to_sales'].rank(method='dense', ascending=True) + output_frame['price_to_cash_flow'].rank(method='dense', ascending=True) + output_frame['shareholder_yield'].rank(method='dense', ascending=False))
+    output_frame['rank_oshaugnessy'] = output_frame[['oshaugnessy_score']].rank(method='dense', ascending=True).replace(np.nan,df.shape[0]+1).values
     return output_frame    
 
 def get_valuation_ratios(yahoo_tickers):

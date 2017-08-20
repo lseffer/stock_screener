@@ -234,7 +234,7 @@ def stock_screener():
     screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
     screened_stocks = magic_formula(screened_stocks)
     screened_stocks = oshaugnessy_value_composite(screened_stocks)
-    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','shareholder_yield','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','rank_piotroski','rank_magic_formula','rank_oshaugnessy']]
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','rank_piotroski','rank_magic_formula','rank_oshaugnessy']]
     screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet

@@ -124,6 +124,16 @@ def oshaugnessy_value_composite(df):
     output_frame['rank_oshaugnessy'] = output_frame[['oshaugnessy_score']].rank(method='dense', ascending=True).replace(np.nan,df.shape[0]+1).values
     return output_frame    
 
+def croic(df):
+    # Cash return on invested capital
+    output_frame = df.copy()
+    output_frame['croic'] = output_frame['free_cash_flow_mil'] / (output_frame['net_income_mil'] / (output_frame['return_on_invested_capital_%']/100)) 
+    output_frame['croic_1yr'] = output_frame.groupby('isin')['croic'].shift(1).fillna(0)
+    output_frame['croic_2yr'] = output_frame.groupby('isin')['croic'].shift(2).fillna(0)
+    output_frame['croic_3yr'] = np.where((output_frame['croic'].values > output_frame['croic_1yr'].values) * (output_frame['croic_1yr'].values > output_frame['croic_2yr'].values),1.,0)
+    output_frame['rank_croic'] = output_frame['croic_3yr'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    return output_frame
+
 def get_valuation_ratios(yahoo_tickers):
     params = {"formatted": "false",
                 "lang": "en-US",
@@ -223,7 +233,7 @@ def stock_screener():
         keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index')
         keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
     p_score_df = piotroski_score(keystats_df)
-    p_score_df = p_score_df[(p_score_df.index==args.pyear) & (p_score_df['p_score']>=6)]
+    p_score_df = p_score_df[(p_score_df['p_score']>=6)]
     valuation_path = os.path.join(os.getcwd(),'stock_data','valuation_ratios_{}.csv'.format(datetime.datetime.strftime(datetime.date.today(),'%Y%m%d')))
     if os.path.exists(valuation_path):
         valuation_ratios = pd.read_csv(valuation_path, low_memory=False)
@@ -235,8 +245,10 @@ def stock_screener():
     screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
     screened_stocks = magic_formula(screened_stocks)
     screened_stocks = oshaugnessy_value_composite(screened_stocks)
-    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','rank_piotroski','rank_magic_formula','rank_oshaugnessy']]
-    screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
+    screened_stocks = croic(screened_stocks)
+    screened_stocks = screened_stocks[screened_stocks.index==args.pyear]
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','croic','croic_1yr','croic_2yr','rank_piotroski','rank_magic_formula','rank_oshaugnessy','rank_croic']]
+    screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_croic']+screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')

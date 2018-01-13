@@ -134,17 +134,25 @@ def croic(df):
     output_frame['rank_croic'] = output_frame['croic_3yr'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
     return output_frame
 
+def ncav_nnwc(df):
+    # Net Current Asset Value and Net Net Working Capital Screens
+    output_frame = df.copy()
+    output_frame['rank_ncav'] = output_frame['ncav'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_nnwc'] = output_frame['nnwc'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    return output_frame
+
 def get_valuation_ratios(yahoo_tickers):
     params = {"formatted": "false",
                 "lang": "en-US",
                 "region": "US",
-                "modules": "summaryDetail,financialData,price,defaultKeyStatistics",
+                "modules": "summaryDetail,financialData,price,defaultKeyStatistics,balanceSheetHistory",
                 "corsDomain": "finance.yahoo.com"}
     columns = ['']
     nr_of_stocks = len(yahoo_tickers)
     nr_failed = 0
-    out_cols = ['targetmedianprice','numberofanalystopinions','ebitda','currentprice','pricetobook','totalcash','totaldebt','marketcap','trailingpe','forwardpe','recommendationkey']
-    out_frame = pd.DataFrame(columns=out_cols)
+    out_cols = ['targetmedianprice','numberofanalystopinions','ebitda','currentprice','pricetobook','marketcap','trailingpe','forwardpe','recommendationkey']
+    balsheet_cols = ['cash','totalCurrentAssets','totalLiab','inventory','netReceivables']
+    out_frame = pd.DataFrame(columns=[col.lower() for col in out_cols+balsheet_cols])
     print('Fetching valuation ratios...')
     for index, ticker in enumerate(yahoo_tickers):
         if index % 10 == 0:
@@ -159,21 +167,28 @@ def get_valuation_ratios(yahoo_tickers):
         if flattened_resp['symbol'].lower()==ticker.lower():
             ticker_dict = {}
             ticker_dict['yahoo_ticker'] = ticker.upper()
-            for element in out_cols:
+            for element in out_cols + balsheet_cols:
+                element_dict = element.lower()
                 try:
-                    if isinstance(flattened_resp[element], dict):
-                        ticker_dict[element] = np.nan
-                    else:
-                        ticker_dict[element] = flattened_resp[element]
+                    if element in balsheet_cols:
+                            ticker_dict[element_dict] = flattened_resp['balancesheetstatements'][0][element]['raw']
+                    else:   
+                        if isinstance(flattened_resp[element], dict):
+                            ticker_dict[element_dict] = np.nan
+                        else:
+                            ticker_dict[element_dict] = flattened_resp[element]
                 except (KeyError, IndexError):
-                    ticker_dict[element] = np.nan
+                    ticker_dict[element_dict] = np.nan
         else:
             nr_failed += 1
             continue
         out_frame = out_frame.append(pd.Series(ticker_dict), ignore_index=True)
     print('Done!')
-    out_frame['ev'] = out_frame['marketcap']+out_frame['totaldebt']-out_frame['totalcash']
+    print(ticker_dict)
+    out_frame['ev'] = out_frame['marketcap']+out_frame['totalliab']-out_frame['cash']
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
+    out_frame['ncav'] = out_frame['totalcurrentassets'] - out_frame['totalliab'] - out_frame['marketcap']
+    out_frame['nnwc'] = out_frame['cash'] + 0.75*out_frame['netreceivables'] + 0.5*out_frame['inventory'] - out_frame['marketcap']
     out_frame['marketcap_sci'] = out_frame['marketcap'].apply(lambda x: '{:.2E}'.format(x))
     return out_frame
 
@@ -246,9 +261,10 @@ def stock_screener():
     screened_stocks = magic_formula(screened_stocks)
     screened_stocks = oshaugnessy_value_composite(screened_stocks)
     screened_stocks = croic(screened_stocks)
+    screened_stocks = ncav_nnwc(screened_stocks)
     screened_stocks = screened_stocks[screened_stocks.index==args.pyear]
-    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','croic','croic_1yr','croic_2yr','rank_piotroski','rank_magic_formula','rank_oshaugnessy','rank_croic']]
-    screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_croic']+screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
+    screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','croic','croic_1yr','croic_2yr','ncav','nnwc','rank_piotroski','rank_magic_formula','rank_oshaugnessy','rank_croic','rank_ncav','rank_nnwc']]
+    screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_ncav'] + screened_stocks_output['rank_nnwc'] + screened_stocks_output['rank_croic']+screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
     screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')

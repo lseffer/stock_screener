@@ -187,6 +187,7 @@ def get_valuation_ratios(yahoo_tickers):
             continue
         out_frame = out_frame.append(pd.Series(ticker_dict), ignore_index=True)
     print('Done!')
+    out_frame = out_frame.fillna(0)
     out_frame['ev'] = out_frame['marketcap']+out_frame['totalliab']-out_frame['cash']
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
     out_frame['ncav'] = out_frame['totalcurrentassets'] - out_frame['totalliab'] - out_frame['marketcap']

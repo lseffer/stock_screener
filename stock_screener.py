@@ -68,7 +68,7 @@ def get_keyratios(isin_list):
             print('{:.0f}/{:.0f} remaining, {:.0f} failed.'.format(nr_of_stocks-index,nr_of_stocks,nr_failed))
         kr_list = []
         try:
-            kr_list = kr.download(isin)
+            kr_list = kr.download(isin, full_year = True)
         except ValueError:
             nr_failed += 1
             continue
@@ -106,13 +106,13 @@ def piotroski_score(df):
     output_frame['p_score_8'] = np.where(output_frame.groupby('isin')['gross_margin_%'].shift(0)>output_frame.groupby('isin')['gross_margin_%'].shift(1),1,0)
     output_frame['p_score_9'] = np.where(output_frame.groupby('isin')['asset_turnover'].shift(0)>output_frame.groupby('isin')['asset_turnover'].shift(1),1,0)
     output_frame['p_score'] = np.sum(output_frame[['p_score_1', 'p_score_2', 'p_score_3', 'p_score_4', 'p_score_5', 'p_score_6', 'p_score_7', 'p_score_8', 'p_score_9']], axis=1)
-    output_frame['rank_piotroski'] = output_frame['p_score'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_piotroski'] = output_frame['p_score'].rank(method='dense', ascending=False).replace(np.nan,df['isin'].nunique()+1).values
     return output_frame
 
 def magic_formula(df):
     output_frame = df.copy()
     output_frame['magic_formula_score'] = ((1/output_frame['ev_ebitda_ratio']).clip(0,None)*output_frame['return_on_invested_capital_%'].clip(0,None)).replace(np.inf,0)
-    output_frame['rank_magic_formula'] = output_frame[['magic_formula_score']].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_magic_formula'] = output_frame[['magic_formula_score']].rank(method='dense', ascending=False).replace(np.nan,df['isin'].nunique()+1).values
     return output_frame
 
 def oshaugnessy_value_composite(df):
@@ -121,24 +121,24 @@ def oshaugnessy_value_composite(df):
     output_frame['price_to_cash_flow'] = output_frame['marketcap'] / output_frame['operating_cash_flow_mil']
     output_frame['shareholder_yield'] = (((output_frame.groupby('isin')['shares_mil'].shift(1)-output_frame.groupby('isin')['shares_mil'].shift(0))/output_frame.groupby('isin')['shares_mil'].shift(1)) + (output_frame['dividends'] / output_frame['currentprice'])).fillna(0)
     output_frame['oshaugnessy_score'] = (output_frame['ev_ebitda_ratio'].rank(method='dense', ascending=True) + output_frame['pricetobook'].rank(method='dense', ascending=True) + output_frame['trailingpe'].rank(method='dense', ascending=True) + output_frame['price_to_sales'].rank(method='dense', ascending=True) + output_frame['price_to_cash_flow'].rank(method='dense', ascending=True) + output_frame['shareholder_yield'].rank(method='dense', ascending=False))
-    output_frame['rank_oshaugnessy'] = output_frame[['oshaugnessy_score']].rank(method='dense', ascending=True).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_oshaugnessy'] = output_frame[['oshaugnessy_score']].rank(method='dense', ascending=True).replace(np.nan,df['isin'].nunique()+1).values
     return output_frame    
 
 def croic(df):
     # Cash return on invested capital
     output_frame = df.copy()
-    output_frame['croic'] = output_frame['free_cash_flow_mil'] / (output_frame['net_income_mil'] / (output_frame['return_on_invested_capital_%']/100)) 
+    output_frame['croic'] = (output_frame['free_cash_flow_mil'] / (output_frame['net_income_mil'] / (output_frame['return_on_invested_capital_%']/100))).fillna(np.inf) 
     output_frame['croic_1yr'] = output_frame.groupby('isin')['croic'].shift(1).fillna(0)
     output_frame['croic_2yr'] = output_frame.groupby('isin')['croic'].shift(2).fillna(0)
     output_frame['croic_3yr'] = np.where((output_frame['croic'].values > output_frame['croic_1yr'].values) * (output_frame['croic_1yr'].values > output_frame['croic_2yr'].values),1.,0)
-    output_frame['rank_croic'] = output_frame['croic_3yr'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_croic'] = output_frame['croic_3yr'].rank(method='dense', ascending=False).replace(np.nan,df['isin'].nunique()+1).values
     return output_frame
 
 def ncav_nnwc(df):
     # Net Current Asset Value and Net Net Working Capital Screens
     output_frame = df.copy()
-    output_frame['rank_ncav'] = output_frame['ncav'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
-    output_frame['rank_nnwc'] = output_frame['nnwc'].rank(method='dense', ascending=False).replace(np.nan,df.shape[0]+1).values
+    output_frame['rank_ncav'] = output_frame['ncav'].rank(method='dense', ascending=False).replace(np.nan,df['isin'].nunique()+1).values
+    output_frame['rank_nnwc'] = output_frame['nnwc'].rank(method='dense', ascending=False).replace(np.nan,df['isin'].nunique()+1).values
     return output_frame
 
 def get_valuation_ratios(yahoo_tickers):
@@ -164,6 +164,9 @@ def get_valuation_ratios(yahoo_tickers):
         except (KeyError, TypeError):
             nr_failed += 1
             continue
+        if not isinstance(flattened_resp['symbol'],str) or not isinstance(ticker, str):
+            nr_failed += 1
+            continue
         if flattened_resp['symbol'].lower()==ticker.lower():
             ticker_dict = {}
             ticker_dict['yahoo_ticker'] = ticker.upper()
@@ -184,13 +187,22 @@ def get_valuation_ratios(yahoo_tickers):
             continue
         out_frame = out_frame.append(pd.Series(ticker_dict), ignore_index=True)
     print('Done!')
-    print(ticker_dict)
+    out_frame = out_frame.fillna(0)
     out_frame['ev'] = out_frame['marketcap']+out_frame['totalliab']-out_frame['cash']
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
     out_frame['ncav'] = out_frame['totalcurrentassets'] - out_frame['totalliab'] - out_frame['marketcap']
-    out_frame['nnwc'] = out_frame['cash'] + 0.75*out_frame['netreceivables'] + 0.5*out_frame['inventory'] - out_frame['marketcap']
+    out_frame['nnwc'] = out_frame['cash'] + 0.75*out_frame['netreceivables'] + 0.5*out_frame['inventory'] - out_frame['totalliab'] - out_frame['marketcap']
     out_frame['marketcap_sci'] = out_frame['marketcap'].apply(lambda x: '{:.2E}'.format(x))
     return out_frame
+
+def excel_style(row, col):
+    """ Convert given row and column number to an Excel-style cell name. """
+    LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    result = []
+    while col:
+        col, rem = divmod(col-1, 26)
+        result[:0] = LETTERS[rem]
+    return ''.join(result) + str(row)
 
 def upload_df(df, spreadsheet_name, sheet_name, sac_file=''):
     google_spreadsheet = spreadsheet_name
@@ -208,11 +220,7 @@ def upload_df(df, spreadsheet_name, sheet_name, sac_file=''):
     end_col = df.shape[1]+1
     start_row = 2
     end_row = df.shape[0]+1
-    cell_range = '{col_i}{row_i}:{col_f}{row_f}'.format(
-        col_i=chr((start_col-1) + ord('A')),    
-        col_f=chr((end_col-1) + ord('A')),      
-        row_i=start_row,
-        row_f=end_row)
+    cell_range = excel_style(start_row, start_col)+':'+excel_style(end_row, end_col)
     cells = np.array(worksheet.range(cell_range)).reshape(end_row-start_row+1,end_col-start_col+1)
     for cell_index in np.ndindex(cells.shape):
         if cell_index[1] == 0:
@@ -223,13 +231,14 @@ def upload_df(df, spreadsheet_name, sheet_name, sac_file=''):
 
 def stock_screener():
     parser = argparse.ArgumentParser(description='Screen Nordic stocks for winners. Using data on disk, if exists.')
-    parser.add_argument('--keystats', help='Forces keystats scrape (takes a long time)', action='store_true')
+    parser.add_argument('--update_existing_keystats', help='Updates existing keystats data on disk.', action='store_true')
+    parser.add_argument('--fetch_keystats', help='Forces keystats scrape (takes a long time)', action='store_true')
     parser.add_argument('--pyear', type=int, help='Process year, default last year.', default=datetime.date.today().year-1)
     parser.add_argument('--sac_file', help='Path to Google Service Account Credential json file.')
     parser.add_argument('--gspreadsheet', help='Name or ID of spreadsheet in your google drive')
     args = parser.parse_args()
-    if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')):
-        if args.keystats:
+    if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')) and not args.fetch_keystats:
+        if args.update_existing_keystats:
             old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
             screened = list(old_df[old_df.index==args.pyear]['isin'].unique())
             not_screened = list(old_df[~old_df['isin'].isin(screened)]['isin'].unique() )

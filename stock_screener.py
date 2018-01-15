@@ -128,6 +128,7 @@ def roic_croic(df):
     # Cash return on invested capital
     output_frame = df.copy()
     output_frame['croic'] = (output_frame['free_cash_flow_mil'] / (output_frame['net_income_mil'] / (output_frame['return_on_invested_capital_%']/100))).fillna(np.inf) 
+    output_frame['return_on_invested_capital_%'] = output_frame['return_on_invested_capital_%'].fillna(np.inf)
     output_frame['croic_1yr_lag'] = output_frame.groupby('isin')['croic'].shift(1).fillna(0)
     output_frame['croic_2yr_lag'] = output_frame.groupby('isin')['croic'].shift(2).fillna(0)
     output_frame['croic_3yr_lag'] = output_frame.groupby('isin')['croic'].shift(3).fillna(0)    

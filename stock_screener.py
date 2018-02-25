@@ -197,8 +197,8 @@ def get_valuation_ratios(yahoo_tickers):
     out_frame = out_frame.fillna(0)
     out_frame['ev'] = out_frame['marketcap']+out_frame['totalliab']-out_frame['cash']
     out_frame['ev_ebitda_ratio'] = out_frame['ev'].div(out_frame['ebitda'])
-    out_frame['ncav'] = out_frame['totalcurrentassets'] - out_frame['totalliab'] - out_frame['marketcap']
-    out_frame['nnwc'] = out_frame['cash'] + 0.75*out_frame['netreceivables'] + 0.5*out_frame['inventory'] - out_frame['totalliab'] - out_frame['marketcap']
+    out_frame['ncav'] = (out_frame['totalcurrentassets'] - out_frame['totalliab'] - out_frame['marketcap'])/out_frame['marketcap']
+    out_frame['nnwc'] = (out_frame['cash'] + 0.75*out_frame['netreceivables'] + 0.5*out_frame['inventory'] - out_frame['totalliab'] - out_frame['marketcap'])/out_frame['marketcap']
     out_frame['marketcap_sci'] = out_frame['marketcap'].apply(lambda x: '{:.2E}'.format(x))
     return out_frame
 
@@ -253,6 +253,7 @@ def stock_screener():
             keystats_df_ns = get_keyratios(not_screened)
             keystats_df_ns = keystats_df_ns[keystats_df_ns.index<=args.pyear]
             keystats_df = pd.concat([screened_df, keystats_df_ns])
+            keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
         else:
             keystats_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
     else:
@@ -261,10 +262,9 @@ def stock_screener():
         keystats_df = keystats_df[keystats_df.index<=args.pyear]
         if not os.path.exists(os.path.join(os.getcwd(),'stock_data')):
             os.makedirs(os.path.join(os.getcwd(),'stock_data'))
-        keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index')
+        keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index') 
         keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
     p_score_df = piotroski_score(keystats_df)
-    p_score_df = p_score_df[(p_score_df['p_score']>=6)]
     valuation_path = os.path.join(os.getcwd(),'stock_data','valuation_ratios_{}.csv'.format(datetime.datetime.strftime(datetime.date.today(),'%Y%m%d')))
     if os.path.exists(valuation_path):
         valuation_ratios = pd.read_csv(valuation_path, low_memory=False)

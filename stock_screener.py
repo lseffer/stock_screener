@@ -244,6 +244,11 @@ def stock_screener():
     parser.add_argument('--sac_file', help='Path to Google Service Account Credential json file.')
     parser.add_argument('--gspreadsheet', help='Name or ID of spreadsheet in your google drive')
     args = parser.parse_args()
+    if os.path.exists(os.path.join(os.getcwd(),'stock_data','listed_companies.csv')):
+        listed_companies_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'),index_col=0, low_memory=False)
+    else:
+        listed_companies_df = get_listed_company_info(url_list)
+        listed_companies_df.to_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'), encoding='utf-8')
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')) and not args.fetch_keystats:
         if args.update_existing_keystats:
             old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
@@ -252,12 +257,12 @@ def stock_screener():
             screened_df = old_df[old_df['isin'].isin(screened)]
             keystats_df_ns = get_keyratios(not_screened)
             keystats_df_ns = keystats_df_ns[keystats_df_ns.index<=args.pyear]
-            keystats_df = pd.concat([screened_df, keystats_df_ns])
+            keystats_df = pd.concat([screened_df[keystats_df_ns.columns], keystats_df_ns])
+            keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index') 
             keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
         else:
             keystats_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
     else:
-        listed_companies_df = get_listed_company_info(url_list)
         keystats_df = get_keyratios(list(listed_companies_df['isin'].unique()))
         keystats_df = keystats_df[keystats_df.index<=args.pyear]
         if not os.path.exists(os.path.join(os.getcwd(),'stock_data')):

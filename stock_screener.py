@@ -278,7 +278,7 @@ def stock_screener():
         valuation_ratios.to_csv(valuation_path, encoding='utf-8')    
         valuation_ratios = pd.read_csv(valuation_path, low_memory=False)
     screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
-    screened_stocks = screened_stocks[((screened_stocks['trailingpe'].isnull()) | (screened_stocks['trailingpe']>=0)) & ((screened_stocks['return_on_invested_capital_%'].isnull()) | (screened_stocks['return_on_invested_capital_%']>=0))]
+    screened_stocks = screened_stocks[screened_stocks['p_score']>=6]
     screened_stocks = magic_formula(screened_stocks)
     screened_stocks = oshaugnessy_value_composite(screened_stocks)
     screened_stocks = roic_croic(screened_stocks)

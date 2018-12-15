@@ -21,7 +21,7 @@ NNCW - Net Net Working Capital - https://www.oldschoolvalue.com/blog/investing-s
 * Create a spreadsheet file in your Google Drive and share it with client_email found in above mentioned JSON file.
 
 Then run
-* `pip install -r requirements.txt`
+* `pip install --upgrade -r requirements.txt`
 * `python stock_screener.py --sac_file path/to/sac_file.json --gspreadsheet name_or_id_of_your_spreadsheet`
 
 ## TO DO:

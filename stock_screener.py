@@ -245,13 +245,13 @@ def stock_screener():
     parser.add_argument('--gspreadsheet', help='Name or ID of spreadsheet in your google drive')
     args = parser.parse_args()
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','listed_companies.csv')):
-        listed_companies_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'),index_col=0, low_memory=False)
+        listed_companies_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'),index_col=0, low_memory=False).drop_duplicates()
     else:
         listed_companies_df = get_listed_company_info(url_list)
-        listed_companies_df.to_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'), encoding='utf-8')
+        listed_companies_df.drop_duplicates().to_csv(os.path.join(os.getcwd(),'stock_data','listed_companies.csv'), encoding='utf-8')
     if os.path.exists(os.path.join(os.getcwd(),'stock_data','stock_data.csv')) and not args.fetch_keystats:
         if args.update_existing_keystats:
-            old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
+            old_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False).drop_duplicates()
             screened = list(old_df[old_df.index==args.pyear]['isin'].unique())
             not_screened = list(old_df[~old_df['isin'].isin(screened)]['isin'].unique() )
             screened_df = old_df[old_df['isin'].isin(screened)]
@@ -259,24 +259,24 @@ def stock_screener():
             keystats_df_ns = keystats_df_ns[keystats_df_ns.index<=args.pyear]
             keystats_df = pd.concat([screened_df[keystats_df_ns.columns], keystats_df_ns])
             keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index') 
-            keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
+            keystats_df.drop_duplicates().to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
         else:
-            keystats_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False)
+            keystats_df = pd.read_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), index_col=0, low_memory=False).drop_duplicates()
     else:
         keystats_df = get_keyratios(list(listed_companies_df['isin'].unique()))
         keystats_df = keystats_df[keystats_df.index<=args.pyear]
         if not os.path.exists(os.path.join(os.getcwd(),'stock_data')):
             os.makedirs(os.path.join(os.getcwd(),'stock_data'))
         keystats_df = pd.merge(keystats_df.reset_index(), listed_companies_df, on='isin', how='left').set_index('index') 
-        keystats_df.to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
+        keystats_df.drop_duplicates().to_csv(os.path.join(os.getcwd(),'stock_data','stock_data.csv'), encoding='utf-8')
     p_score_df = piotroski_score(keystats_df)
     valuation_path = os.path.join(os.getcwd(),'stock_data','valuation_ratios_{}.csv'.format(datetime.datetime.strftime(datetime.date.today(),'%Y%m%d')))
     if os.path.exists(valuation_path):
-        valuation_ratios = pd.read_csv(valuation_path, low_memory=False)
+        valuation_ratios = pd.read_csv(valuation_path, low_memory=False).drop_duplicates()
     else:
         valuation_ratios = get_valuation_ratios(list(p_score_df[p_score_df.index==args.pyear]['yahoo_ticker'].unique()))
-        valuation_ratios.to_csv(valuation_path, encoding='utf-8')    
-        valuation_ratios = pd.read_csv(valuation_path, low_memory=False)
+        valuation_ratios.drop_duplicates().to_csv(valuation_path, encoding='utf-8')
+        valuation_ratios = pd.read_csv(valuation_path, low_memory=False).drop_duplicates()
     screened_stocks = pd.merge(p_score_df.reset_index(), valuation_ratios, on='yahoo_ticker', how='left').set_index('index')
     screened_stocks = screened_stocks[screened_stocks['p_score']>=6]
     screened_stocks = magic_formula(screened_stocks)
@@ -286,7 +286,7 @@ def stock_screener():
     screened_stocks = screened_stocks[screened_stocks.index==args.pyear]
     screened_stocks_output = screened_stocks.copy()[['name','isin','yahoo_ticker','sector','currency','marketcap_sci','recommendationkey','currentprice','targetmedianprice','numberofanalystopinions','forwardpe','trailingpe','ev_ebitda_ratio','pricetobook','p_score','return_on_invested_capital_%','roic_1yr_lag','roic_2yr_lag','roic_3yr_lag','croic','croic_1yr_lag','croic_2yr_lag','croic_3yr_lag','ncav','nnwc','rank_piotroski','rank_magic_formula','rank_oshaugnessy','rank_croic','rank_roic','rank_ncav','rank_nnwc']]
     screened_stocks_output.loc[:,'combined_rank'] = (screened_stocks_output['rank_roic'] + screened_stocks_output['rank_ncav'] + screened_stocks_output['rank_nnwc'] + screened_stocks_output['rank_croic']+screened_stocks_output['rank_piotroski']+screened_stocks_output['rank_magic_formula']+screened_stocks_output['rank_oshaugnessy']).rank(method='dense', ascending=True).replace(np.nan,screened_stocks_output.shape[0]+1).values
-    screened_stocks_output.to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
+    screened_stocks_output.drop_duplicates().to_csv(os.path.join(os.getcwd(),'stock_data','stock_screener_results.csv'), encoding='utf-8')
     google_spreadsheet = args.gspreadsheet
     wks_name = datetime.datetime.strftime(datetime.date.today(),'%Y-%m-%d')
     upload_df(screened_stocks_output, google_spreadsheet, wks_name, sac_file=args.sac_file)

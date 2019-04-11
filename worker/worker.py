@@ -1,7 +1,10 @@
-import schedule
 import time
+import threading
 import logging
 import sys
+from traceback import format_exc
+import datetime
+from schedule import Scheduler
 
 
 def setup_logging():
@@ -15,21 +18,52 @@ def setup_logging():
     return log
 
 
+logger = setup_logging()
+
+
+class SafeScheduler(Scheduler):
+    """
+    An implementation of Scheduler that catches jobs that fail, logs their
+    exception tracebacks as errors, optionally reschedules the jobs for their
+    next run time, and keeps going.
+    Use this to run jobs that may or may not crash without worrying about
+    whether other jobs will run or if they'll crash the entire script.
+    """
+
+    def __init__(self, reschedule_on_failure=True, logger=None):
+        """
+        If reschedule_on_failure is True, jobs will be rescheduled for their
+        next run as if they had completed successfully. If False, they'll run
+        on the next run_pending() tick.
+        """
+        self.logger = logger
+        self.reschedule_on_failure = reschedule_on_failure
+        super().__init__()
+
+    def _run_job(self, job):
+        try:
+            super()._run_job(job)
+        except Exception:
+            if self.logger:
+                self.logger.error(format_exc())
+            job.last_run = datetime.datetime.now()
+            job._schedule_next_run()
+
+
+def run_threaded(job_func):
+    job_thread = threading.Thread(target=job_func)
+    job_thread.start()
+
+
 def job():
     print("I'm working...")
 
 
-schedule.every(10).minutes.do(job)
-schedule.every().hour.do(job)
-schedule.every().day.at("10:30").do(job)
-schedule.every(5).to(10).minutes.do(job)
-schedule.every().monday.do(job)
-schedule.every().wednesday.at("13:15").do(job)
-schedule.every().minute.at(":17").do(job)
-
 if __name__ == '__main__':
-    log = setup_logging()
+    scheduler = SafeScheduler(logger=logger)
+    scheduler.every(5).seconds.do(run_threaded, job)
+    scheduler.every(10).seconds.do(run_threaded, job)
     while True:
-        log.info('Heartbeat 60 seconds')
-        schedule.run_pending()
-        time.sleep(60)
+        logger.info('Heartbeat 5 seconds')
+        scheduler.run_pending()
+        time.sleep(5)

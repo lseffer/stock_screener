@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  database:
+    image: postgres:11.2
+    restart: always
+    ports:
+    - "5432"
+
+  webserver:
+    build: ./webserver
+    command: python /home/worker/app.py
+    volumes:
+      - ./webserver:/home/worker
+    ports:
+      - "5000:5000"
+    depends_on:
+      - database
+    restart: always
+
+  worker:
+    build: ./worker
+    command: python /home/worker/worker.py
+    volumes:
+      - ./worker:/home/worker
+    depends_on:
+      - database
+    restart: always

@@ -11,3 +11,6 @@
   * Using Celert for scheduling?
 * Database
   * A postgres database
+
+* Tests
+* Alembic

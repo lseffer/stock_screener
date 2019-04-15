@@ -7,19 +7,31 @@ services:
     ports:
     - "5432"
 
-  webserver:
-    build: ./webserver
+  web:
+    build: .
     command: python /home/worker/app.py
     volumes:
-      - ./webserver:/home/worker
+      - ./web:/home/worker
     ports:
       - "5000:5000"
+    depends_on:
+      - database
+      - api
+    restart: always
+
+  api:
+    build: .
+    command: python /home/worker/app.py
+    volumes:
+      - ./api:/home/worker
+    ports:
+      - "5050:5050"
     depends_on:
       - database
     restart: always
 
   worker:
-    build: ./worker
+    build: .
     command: python /home/worker/worker.py
     volumes:
       - ./worker:/home/worker

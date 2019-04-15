@@ -9,4 +9,4 @@ RUN python3 -m pip install -r /requirements.txt
 
 USER worker
 
-EXPOSE 5000
+EXPOSE 5000 5050

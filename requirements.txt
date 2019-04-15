@@ -1,9 +1,8 @@
-gspread>=0.6.2
-git+https://github.com/lseffer/good-morning
-pandas>=0.18.1
-numpy>=1.11.1
-requests>=2.11.1
-beautifulsoup4>=4.6.0
-google_api_python_client>=1.6.2
-oauth2client
-lxml
+flask
+dash
+dash-bootstrap-components
+schedule
+requests
+sqlalchemy
+alembic
+psycopg2-binary

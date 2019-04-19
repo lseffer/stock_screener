@@ -1,24 +1,9 @@
 import time
 import threading
-import logging
-import sys
 from traceback import format_exc
 import datetime
 from schedule import Scheduler
-
-
-def setup_logging():
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-    return log
-
-
-logger = setup_logging()
+from utils.config import logger
 
 
 class SafeScheduler(Scheduler):
@@ -61,9 +46,8 @@ def job():
 
 if __name__ == '__main__':
     scheduler = SafeScheduler(logger=logger)
-    scheduler.every(5).seconds.do(run_threaded, job)
     scheduler.every(10).seconds.do(run_threaded, job)
     while True:
-        logger.info('Heartbeat 5 seconds')
+        logger.debug('Heartbeat 5 seconds')
         scheduler.run_pending()
         time.sleep(5)

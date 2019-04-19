@@ -40,9 +40,10 @@ services:
 
   worker:
     build: .
-    command: python /home/worker/worker.py
+    command: python worker.py
     volumes:
       - ./worker:/home/worker
+      - ./utils:/home/worker/utils
     depends_on:
       - database
     environment: *common-variables

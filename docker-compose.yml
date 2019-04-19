@@ -1,9 +1,15 @@
-version: '3'
+version: '3.4'
+
+x-common-variables: &common-variables
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: test
+  POSTGRES_DB: master
 
 services:
   database:
     image: postgres:11.2
     restart: always
+    environment: *common-variables
     ports:
     - "5432"
 
@@ -28,6 +34,8 @@ services:
       - "5050:5050"
     depends_on:
       - database
+      - worker
+    environment: *common-variables
     restart: always
 
   worker:
@@ -37,4 +45,5 @@ services:
       - ./worker:/home/worker
     depends_on:
       - database
+    environment: *common-variables
     restart: always

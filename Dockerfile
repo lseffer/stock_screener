@@ -4,7 +4,7 @@ ARG APP_ENV="dev"
 
 RUN useradd -ms /bin/bash worker \
     && apt-get update \
-    && apt-get install -y git
+    && apt-get install -y git netcat
 COPY requirements.txt /requirements.txt
 RUN python3 -m pip install -r /requirements.txt
 

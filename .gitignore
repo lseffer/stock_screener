@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+.bash_history
+.python_history
+.vscode/
+
+postgres-data/
 stock_data/*
 
 # C extensions

@@ -8,5 +8,6 @@ RUN python3 -m pip install -r /requirements.txt
 
 USER worker
 WORKDIR /home/worker
+ENV PYTHONPATH="${PYTHONPATH}:${HOME}"
 
 EXPOSE 5000 5050

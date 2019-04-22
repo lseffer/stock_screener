@@ -8,3 +8,4 @@ class Stocks(Base):
     symbol = Column(String)
     currency = Column(String)
     sector = Column(String)
+    yahoo_ticker = Column(String)

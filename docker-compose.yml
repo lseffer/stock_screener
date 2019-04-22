@@ -46,6 +46,7 @@ services:
     volumes:
       - ./worker:/home/worker
       - ./utils:/home/worker/utils
+      - ./tests:/home/worker/tests
     depends_on:
       - database
     environment: *common-variables

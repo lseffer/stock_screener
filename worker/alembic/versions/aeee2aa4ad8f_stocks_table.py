@@ -24,6 +24,7 @@ def upgrade():
                     sa.Column('symbol', sa.String(), nullable=True),
                     sa.Column('currency', sa.String(), nullable=True),
                     sa.Column('sector', sa.String(), nullable=True),
+                    sa.Column('yahoo_ticker', sa.String(), nullable=True),
                     sa.PrimaryKeyConstraint('isin')
                     )
     # ### end Alembic commands ###

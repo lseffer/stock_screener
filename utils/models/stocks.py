@@ -1,5 +1,6 @@
 from .base import Base
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, DateTime
+from datetime import datetime
 
 class Stocks(Base):
     __tablename__ = 'stocks'
@@ -9,3 +10,5 @@ class Stocks(Base):
     currency = Column(String)
     sector = Column(String)
     yahoo_ticker = Column(String)
+    dw_created = Column(DateTime, default=datetime.now())
+    dw_modified = Column(DateTime, default=datetime.now())

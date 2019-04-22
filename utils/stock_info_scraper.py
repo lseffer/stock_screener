@@ -1,7 +1,7 @@
 import requests
 import bs4 as bs
-from .config import Session, logger
-from .models import Stocks
+from utils.config import Session, logger
+from utils.models import Stocks
 from traceback import format_exc
 
 STOCK_INFO_URLS = [

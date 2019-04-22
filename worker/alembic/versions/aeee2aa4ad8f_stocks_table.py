@@ -7,7 +7,7 @@ Create Date: 2019-04-21 16:27:53.284552
 """
 from alembic import op
 import sqlalchemy as sa
-
+from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = 'aeee2aa4ad8f'
@@ -25,6 +25,8 @@ def upgrade():
                     sa.Column('currency', sa.String(), nullable=True),
                     sa.Column('sector', sa.String(), nullable=True),
                     sa.Column('yahoo_ticker', sa.String(), nullable=True),
+                    sa.Column('dw_created', sa.DateTime(), nullable=True, default=datetime.now()),
+                    sa.Column('dw_modified', sa.DateTime(), nullable=True, default=datetime.now()),
                     sa.PrimaryKeyConstraint('isin')
                     )
     # ### end Alembic commands ###

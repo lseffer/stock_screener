@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -e
+
+TRY_LOOP="20"
+
 wait_for_port() {
   local name="$1" host="$2" port="$3"
   local j=0

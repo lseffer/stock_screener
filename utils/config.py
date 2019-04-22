@@ -2,11 +2,23 @@ import os
 import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
 HOME = os.environ.get('HOME', None)
 POSTGRES_USER = os.environ.get('POSTGRES_USER', None)
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', None)
 POSTGRES_DB = os.environ.get('POSTGRES_DB', None)
+
+
+def create_pg_engine():
+    engine = create_engine('postgresql://%s:%s@database/%s' %
+                           (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB))
+    return engine
+
+
+engine = create_pg_engine()
+Session = sessionmaker(bind=engine)
 
 
 def setup_logging(level=logging.INFO):

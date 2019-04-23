@@ -2,8 +2,20 @@ import requests
 from traceback import format_exc
 from utils.models import Stock
 from utils.config import Session, logger
+from datetime import datetime
+from utils.models import Price
 
 YAHOO_FINANCE_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
+
+
+def get_nested(dict_, *keys, default=None):
+    # Recursive helper function for traversing nested dictionaries
+    if not isinstance(dict_, dict):
+        return default
+    elem = dict_.get(keys[0], default)
+    if len(keys) == 1:
+        return elem
+    return get_nested(elem, *keys[1:], default=default)
 
 
 def get_all_yahoo_tickers():
@@ -17,19 +29,52 @@ def get_yahoo_data(yahoo_ticker):
     params = {"formatted": "false",
               "lang": "en-US",
               "region": "US",
-              "modules": "summaryDetail,financialData,defaultKeyStatistics",
+              "modules": "summaryDetail,financialData,defaultKeyStatistics,price",
               "corsDomain": "finance.yahoo.com"}
     response = requests.get(YAHOO_FINANCE_BASE_URL.format(yahoo_ticker), params=params).json()
+    response = get_nested(response, 'quoteSummary', 'result')[0]
     record = {
-        'price': response['financialData']['currentPrice'].get('raw', None),
-        'target_median_price': response['financialData']['targetMedianPrice'].get('raw', None),
-        'recommendation': response['financialData']['recommendationKey'].get('raw', None),
-        'number_of_analyst_opinions': response['financialData']['numberOfAnalystOpinions'].get('raw', None),
-        'ebitda': response['financialData']['ebitda'].get('raw', None),
-        'market_cap': response['summaryDetail']['marketCap'].get('raw', None),
-        'trailing_pe': response['summaryDetail']['trailingPE'].get('raw', None),
-        'forward_pe': response['summaryDetail']['forwardPE'].get('raw', None),
-        'ev_ebitda_ratio': response['defaultKeyStatistics']['enterpriseToEbitda'].get('raw', None)
+        'yahoo_ticker': yahoo_ticker,
+        'market_date': datetime.fromtimestamp(get_nested(response, 'price', 'regularMarketTime')).date(),
+        'price': get_nested(response, 'financialData', 'currentPrice', 'raw'),
+        'target_median_price': get_nested(response, 'financialData', 'targetMedianPrice', 'raw'),
+        'recommendation': get_nested(response, 'financialData', 'recommendationKey', 'raw'),
+        'number_of_analyst_opinions': get_nested(response, 'financialData', 'numberOfAnalystOpinions', 'raw'),
+        'ebitda': get_nested(response, 'financialData', 'ebitda', 'raw'),
+        'market_cap': get_nested(response, 'summaryDetail', 'marketCap', 'raw'),
+        'trailing_pe': get_nested(response, 'summaryDetail', 'trailingPE', 'raw'),
+        'forward_pe': get_nested(response, 'summaryDetail', 'forwardPE', 'raw'),
+        'ev_ebitda_ratio': get_nested(response, 'defaultKeyStatistics', 'enterpriseToEbitda', 'raw')
     }
     return record
 
+
+def create_yahoo_price_data():
+    tickers = get_all_yahoo_tickers()
+    data = []
+    for ticker_tuple in tickers:
+        ticker = ticker_tuple[0]
+        try:
+            record = get_yahoo_data(ticker)
+            data.append(record)
+        except Exception:
+            logger.error('Something went wrong getting ticker %s' % ticker)
+            logger.error(format_exc())
+            continue
+    return data
+
+
+def yahoo_price_data_export_to_pg():
+    session = Session()
+    data = create_yahoo_price_data()
+    for record in data:
+        try:
+            session.merge(Price(**record))
+        except Exception:
+            logger.error('Something went wrong merging: %s' % record)
+            logger.error(format_exc())
+            continue
+        logger.debug(record)
+    logger.info('Succesfully updated stock prices.')
+    session.commit()
+    session.close()

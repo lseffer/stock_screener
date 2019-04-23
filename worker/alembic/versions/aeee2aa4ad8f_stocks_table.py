@@ -25,8 +25,8 @@ def upgrade():
                     sa.Column('currency', sa.String(), nullable=True),
                     sa.Column('sector', sa.String(), nullable=True),
                     sa.Column('yahoo_ticker', sa.String(), nullable=True),
-                    sa.Column('dw_created', sa.DateTime(), nullable=True, default=datetime.now()),
-                    sa.Column('dw_modified', sa.DateTime(), nullable=True, default=datetime.now()),
+                    sa.Column('dw_created', sa.DateTime(), nullable=True, default=datetime.utcnow),
+                    sa.Column('dw_modified', sa.DateTime(), nullable=True, default=datetime.utcnow),
                     sa.PrimaryKeyConstraint('isin')
                     )
     # ### end Alembic commands ###

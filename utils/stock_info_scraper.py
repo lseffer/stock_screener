@@ -1,7 +1,7 @@
 import requests
 import bs4 as bs
 from utils.config import Session, logger
-from utils.models import Stocks
+from utils.models import Stock
 from traceback import format_exc
 
 STOCK_INFO_URLS = [
@@ -70,7 +70,7 @@ def scrape_stock_info_export_to_pg():
         data = create_data_from_soup(soup_table)
         for record in data:
             try:
-                session.merge(Stocks(**record))
+                session.merge(Stock(**record))
             except Exception:
                 logger.debug('Something went wrong: %s' % record)
                 logger.error(format_exc())

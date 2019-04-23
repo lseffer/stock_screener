@@ -1,6 +1,6 @@
 import requests
 from traceback import format_exc
-from utils.models import Stocks
+from utils.models import Stock
 from utils.config import Session, logger
 
 YAHOO_FINANCE_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
@@ -8,7 +8,7 @@ YAHOO_FINANCE_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSumm
 
 def get_all_yahoo_tickers():
     session = Session()
-    res = session.query(Stocks.yahoo_ticker).all()
+    res = session.query(Stock.yahoo_ticker).all()
     # Remember this is a list of tuples
     return res
 

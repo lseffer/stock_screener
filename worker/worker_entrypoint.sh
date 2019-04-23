@@ -19,6 +19,7 @@ wait_for_port() {
 }
 
 wait_for_port "Postgres" "database" "5432"
+sleep 10
 
 alembic upgrade head
 python worker.py

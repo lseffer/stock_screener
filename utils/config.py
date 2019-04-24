@@ -24,7 +24,7 @@ Session = sessionmaker(bind=engine)
 def setup_logging(level=logging.INFO):
     log = logging.getLogger()
     log.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
 
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)

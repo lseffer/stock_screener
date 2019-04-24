@@ -5,6 +5,7 @@ import datetime
 from schedule import Scheduler
 from utils.config import logger
 from utils.stock_info_scraper import scrape_stock_info_export_to_pg
+from utils.stock_valuation_scrape import yahoo_price_data_export_to_pg
 
 
 class SafeScheduler(Scheduler):
@@ -49,6 +50,7 @@ if __name__ == '__main__':
     scheduler = SafeScheduler(logger=logger)
     scheduler.every(10).seconds.do(run_threaded, job)
     scheduler.every().saturday.at("00:00").do(run_threaded, scrape_stock_info_export_to_pg)
+    scheduler.every().day.at("23:00").do(run_threaded, yahoo_price_data_export_to_pg)
     while True:
         logger.debug('Heartbeat 5 seconds')
         scheduler.run_pending()

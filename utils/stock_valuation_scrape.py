@@ -1,5 +1,4 @@
 import requests
-from traceback import format_exc
 from utils.models import Stock
 from utils.config import Session, logger
 from datetime import datetime
@@ -20,12 +19,13 @@ def get_nested(dict_, *keys, default=None):
 
 def get_all_yahoo_tickers():
     session = Session()
-    res = session.query(Stock.yahoo_ticker).all()
+    res = session.query(Stock.isin, Stock.yahoo_ticker).group_by(Stock.isin, Stock.yahoo_ticker).all()
+    session.close()
     # Remember this is a list of tuples
     return res
 
 
-def get_yahoo_data(yahoo_ticker):
+def get_yahoo_data(isin, yahoo_ticker):
     params = {"formatted": "false",
               "lang": "en-US",
               "region": "US",
@@ -34,7 +34,7 @@ def get_yahoo_data(yahoo_ticker):
     response = requests.get(YAHOO_FINANCE_BASE_URL.format(yahoo_ticker), params=params).json()
     response = get_nested(response, 'quoteSummary', 'result')[0]
     record = {
-        'yahoo_ticker': yahoo_ticker,
+        'isin': isin,
         'market_date': datetime.fromtimestamp(get_nested(response, 'price', 'regularMarketTime')).date(),
         'price': get_nested(response, 'financialData', 'currentPrice', 'raw'),
         'target_median_price': get_nested(response, 'financialData', 'targetMedianPrice', 'raw'),
@@ -53,13 +53,14 @@ def create_yahoo_price_data():
     tickers = get_all_yahoo_tickers()
     data = []
     for ticker_tuple in tickers:
-        ticker = ticker_tuple[0]
-        try:
-            record = get_yahoo_data(ticker)
+        if len(ticker_tuple) == 2:
+            try:
+                record = get_yahoo_data(*ticker_tuple)
+            except Exception:
+                logger.error('Something went wrong getting ticker %s' % ticker_tuple[1])
+                continue
             data.append(record)
-        except Exception:
-            logger.error('Something went wrong getting ticker %s' % ticker)
-            logger.error(format_exc())
+        else:
             continue
     return data
 
@@ -68,13 +69,13 @@ def yahoo_price_data_export_to_pg():
     session = Session()
     data = create_yahoo_price_data()
     for record in data:
+        logger.debug(record)
         try:
             session.merge(Price(**record))
         except Exception:
             logger.error('Something went wrong merging: %s' % record)
-            logger.error(format_exc())
             continue
         logger.debug(record)
-    logger.info('Succesfully updated stock prices.')
     session.commit()
+    logger.info('Succesfully updated stock prices.')
     session.close()

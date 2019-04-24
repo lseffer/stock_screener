@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Price(Base):
     __tablename__ = 'prices'
-    yahoo_ticker = Column(String, primary_key=True)
+    isin = Column(String, primary_key=True)
     market_date = Column(Date, primary_key=True)
     price = Column(Float)
     target_median_price = Column(Float)

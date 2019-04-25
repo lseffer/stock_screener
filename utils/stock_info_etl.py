@@ -1,8 +1,7 @@
 import requests
 import bs4 as bs
-from utils.config import Session, logger
 from utils.models import Stock
-from traceback import format_exc
+from utils.etl_base import ETLBase
 
 STOCK_INFO_URLS = [
     'http://www.nasdaqomxnordic.com/aktier/listed-companies/copenhagen',
@@ -12,13 +11,16 @@ STOCK_INFO_URLS = [
     'http://www.nasdaqomxnordic.com/aktier/listed-companies/norwegian-listed-shares'
 ]
 
+
 def get_stock_info_page(url):
     return requests.get(url)
+
 
 def get_stock_info_soup_table(response):
     soup = bs.BeautifulSoup(response.text, 'lxml')
     table = soup.find('table', {'id': 'listedCompanies'})
     return table
+
 
 def get_yahoo_ticker(record):
     symbol = record.get('symbol', '')
@@ -46,6 +48,7 @@ def get_yahoo_ticker(record):
     else:
         return None
 
+
 def create_data_from_soup(soup):
     data = []
     # Iterate all rows in table (skip header)
@@ -62,20 +65,13 @@ def create_data_from_soup(soup):
         data.append(record)
     return data
 
-def scrape_stock_info_export_to_pg():
-    session = Session()
-    for url in STOCK_INFO_URLS:
-        response = get_stock_info_page(url)
-        soup_table = get_stock_info_soup_table(response)
-        data = create_data_from_soup(soup_table)
-        for record in data:
-            try:
-                session.merge(Stock(**record))
-            except Exception:
-                logger.debug('Something went wrong: %s' % record)
-                logger.error(format_exc())
-                continue
-            logger.debug(record)
-        logger.info('Succesfully updated stocks from %s' % url)
-        session.commit()
-    session.close()
+
+class StockInfoETL(ETLBase):
+
+    def job():
+        data = []
+        for url in STOCK_INFO_URLS:
+            response = get_stock_info_page(url)
+            soup_table = get_stock_info_soup_table(response)
+            data = data + create_data_from_soup(soup_table)
+        ETLBase.load_data(Stock, data)

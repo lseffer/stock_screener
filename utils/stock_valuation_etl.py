@@ -1,8 +1,8 @@
 import requests
-from utils.models import Stock
+from utils.models import Stock, Price
 from utils.config import Session, logger
+from utils.etl_base import ETLBase
 from datetime import datetime
-from utils.models import Price
 
 YAHOO_FINANCE_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
 
@@ -65,17 +65,8 @@ def create_yahoo_price_data():
     return data
 
 
-def yahoo_price_data_export_to_pg():
-    session = Session()
-    data = create_yahoo_price_data()
-    for record in data:
-        logger.debug(record)
-        try:
-            session.merge(Price(**record))
-        except Exception:
-            logger.error('Something went wrong merging: %s' % record)
-            continue
-        logger.debug(record)
-    session.commit()
-    logger.info('Succesfully updated stock prices.')
-    session.close()
+class StockValuationETL(ETLBase):
+
+    def job():
+        data = create_yahoo_price_data()
+        ETLBase.load_data(Price, data)

@@ -1,11 +1,11 @@
 
 run: 
 	@echo 'Starting containers...'
-	docker-compose up -d
+	@docker-compose up -d
 
 test: 
 	@echo 'Running tests...'
-	docker-compose run \
+	@docker-compose run \
 	  --no-deps \
 	  --entrypoint='' \
 	  worker \

@@ -1,5 +1,5 @@
 import unittest
-from utils.stock_info_scraper import get_yahoo_ticker
+from utils.models import Stock
 
 class TestStockInfoScraper(unittest.TestCase):
 
@@ -12,12 +12,12 @@ class TestStockInfoScraper(unittest.TestCase):
     }
 
     def test_normal_get_yahoo_ticker(self):
-        res = get_yahoo_ticker(self.mock_record)
+        res = Stock.parse_yahoo_ticker_from_isin(self.mock_record)
         self.assertEqual(res, 'shit.HE')
 
     def test_crazy_get_yahoo_ticker(self):
         mk_rec = self.mock_record.copy()
         mk_rec['isin'] = 'ZZ'
         mk_rec['currency'] = 'NOK'
-        res = get_yahoo_ticker(mk_rec)
+        res = Stock.parse_yahoo_ticker_from_isin(mk_rec)
         self.assertEqual(res, 'shit.OL')

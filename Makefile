@@ -6,6 +6,7 @@ run:
 test: 
 	@echo 'Running tests...'
 	@docker-compose run \
+	  --rm \
 	  --no-deps \
 	  --entrypoint='' \
 	  worker \

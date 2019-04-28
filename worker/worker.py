@@ -49,8 +49,8 @@ def job():
 if __name__ == '__main__':
     scheduler = SafeScheduler(logger=logger)
     scheduler.every(10).seconds.do(run_threaded, job)
-    scheduler.every().sunday.at("00:00").do(run_threaded, StockInfoETL.job)
-    scheduler.every().sunday.at("01:00").do(run_threaded, StockValuationETL.job)
+    scheduler.every().saturday.at("00:00").do(run_threaded, StockInfoETL.job)
+    scheduler.every().sunday.at("00:00").do(run_threaded, StockValuationETL.job)
     while True:
         logger.debug('Heartbeat 5 seconds')
         scheduler.run_pending()

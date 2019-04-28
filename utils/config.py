@@ -1,9 +1,12 @@
 import os
 import sys
 import logging
+from datetime import datetime, date
 from logging.handlers import TimedRotatingFileHandler
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+
+LAST_YEAR = date(datetime.utcnow().year - 1, 12, 31)
 
 HOME = os.environ.get('HOME', None)
 POSTGRES_USER = os.environ.get('POSTGRES_USER', None)

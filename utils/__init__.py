@@ -1,9 +1,9 @@
 import requests
-from typing import Dict
+from typing import Dict, Any
 from utils.config import YAHOO_API_BASE_URL, YAHOO_API_PARAMS
 
 
-def get_nested(dict_: Dict, *keys: str, default=None):
+def get_nested(dict_: Dict, *keys: str, default=None) -> Any:
     # Recursive helper function for traversing nested dictionaries
     if not isinstance(dict_, dict):
         return default

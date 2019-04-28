@@ -10,6 +10,12 @@ POSTGRES_USER = os.environ.get('POSTGRES_USER', None)
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', None)
 POSTGRES_DB = os.environ.get('POSTGRES_DB', None)
 
+YAHOO_API_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
+YAHOO_API_PARAMS = {"formatted": "false",
+                    "lang": "en-US",
+                    "region": "US",
+                    "corsDomain": "finance.yahoo.com"}
+
 
 def create_pg_engine():
     engine = create_engine('postgresql://%s:%s@database/%s' %

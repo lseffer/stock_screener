@@ -23,6 +23,7 @@ jupyter-core==4.4.0
 lxml==4.3.3
 Mako==1.0.9
 MarkupSafe==1.1.1
+mypy==0.701
 nbformat==4.4.0
 numpy==1.16.2
 pandas==0.24.2

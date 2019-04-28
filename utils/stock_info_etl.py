@@ -1,7 +1,11 @@
 import requests
+from requests import Response
 import bs4 as bs
+from bs4 import BeautifulSoup, Tag
 from utils.models import Stock
 from utils.etl_base import ETLBase
+from utils.models import Base
+from typing import List
 
 STOCK_INFO_URLS = [
     'http://www.nasdaqomxnordic.com/aktier/listed-companies/copenhagen',
@@ -12,66 +16,29 @@ STOCK_INFO_URLS = [
 ]
 
 
-def get_stock_info_page(url):
-    return requests.get(url)
-
-
-def get_stock_info_soup_table(response):
-    soup = bs.BeautifulSoup(response.text, 'lxml')
-    table = soup.find('table', {'id': 'listedCompanies'})
+def get_stock_info_soup_table(response: Response) -> Tag:
+    soup: BeautifulSoup = bs.BeautifulSoup(response.text, 'lxml')
+    table: Tag = soup.find('table', {'id': 'listedCompanies'})
     return table
 
 
-def get_yahoo_ticker(record):
-    symbol = record.get('symbol', '')
-    symbol = symbol.replace(' ', '-')
-    isin_country = record.get('isin', '')[:2]
-    currency = record.get('currency', '')
-    if isin_country == 'DK':
-        return symbol + '.CO'
-    elif isin_country == 'SE':
-        return symbol + '.ST'
-    elif isin_country == 'FI':
-        return symbol + '.HE'
-    elif isin_country == 'NO':
-        return symbol.replace('o', '') + '.OL'
-    elif currency == 'DKK':
-        return symbol + '.CO'
-    elif currency == 'ISK':
-        return symbol + '.CO'
-    elif currency == 'SEK':
-        return symbol + '.ST'
-    elif currency == 'EUR':
-        return symbol + '.HE'
-    elif currency == 'NOK':
-        return symbol.replace('o', '') + '.OL'
-    else:
-        return None
-
-
-def create_data_from_soup(soup):
-    data = []
+def create_data_from_soup(soup: Tag) -> List[Base]:
+    data: List[Base] = []
     # Iterate all rows in table (skip header)
     for row in soup.findAll('tr')[1:]:
         values = [cell.string for cell in row.findChildren('td')]
-        record = {
-            'isin': values[3],
-            'name': values[0],
-            'symbol': values[1],
-            'currency': values[2],
-            'sector': values[4]
-        }
-        record['yahoo_ticker'] = get_yahoo_ticker(record.copy())
+        record = Stock.process_response(values)
         data.append(record)
     return data
 
 
 class StockInfoETL(ETLBase):
 
-    def job():
-        data = []
+    @staticmethod
+    def job() -> None:
+        data: List[Base] = []
         for url in STOCK_INFO_URLS:
-            response = get_stock_info_page(url)
+            response = requests.get(url)
             soup_table = get_stock_info_soup_table(response)
             data = data + create_data_from_soup(soup_table)
-        ETLBase.load_data(Stock, data)
+        ETLBase.load_data(data)

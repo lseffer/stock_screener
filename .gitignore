@@ -6,6 +6,7 @@ __pycache__/
 .bash_history
 .python_history
 .vscode/
+.mypy_cache/
 
 postgres-data/
 stock_data/*

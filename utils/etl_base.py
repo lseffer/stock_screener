@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
 from utils.config import Session, logger
 from traceback import format_exc
-
+from typing import List
+from utils.models import Base
 
 class ETLBase(ABC):
 
     @staticmethod
-    def load_data(model=None, data=None):
+    def load_data(data: List[Base]) -> None:
         session = Session()
         for idx, record in enumerate(data):
             try:
-                session.merge(model(**record))
+                session.merge(record)
             except Exception:
-                logger.debug('Something went wrong: %s' % record)
+                logger.info('Something went wrong: %s' % record)
                 logger.error(format_exc())
                 continue
             logger.debug(record)
@@ -25,5 +26,5 @@ class ETLBase(ABC):
 
     @staticmethod
     @abstractmethod
-    def job():
+    def job() -> None:
         pass

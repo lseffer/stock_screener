@@ -43,13 +43,8 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-def job():
-    print("I'm working...")
-
-
 if __name__ == '__main__':
     scheduler = SafeScheduler(logger=logger)
-    scheduler.every(10).seconds.do(run_threaded, job)
     scheduler.every().saturday.at("00:00").do(run_threaded, StockInfoETL.job)
     scheduler.every().sunday.at("00:00").do(run_threaded, StockValuationETL.job)
     scheduler.every().sunday.at("06:00").do(run_threaded, StockFinancialStatementsETL.job)

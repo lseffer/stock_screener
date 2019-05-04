@@ -12,6 +12,7 @@ def fetch_yahoo_responses() -> List[Tuple]:
     for model in [BalanceSheetStatement, CashFlowStatement, IncomeStatement]:
         tickers.append(fetch_isins_not_updated_financials(model))
     tickers_unique: List[Tuple] = union_of_list_elements(*tickers)
+    logger.info('Fetching financials from %s stocks' % len(tickers_unique))
     responses = []
     for ticker_tuple in tickers_unique:
         if len(ticker_tuple) == 2:
@@ -20,9 +21,10 @@ def fetch_yahoo_responses() -> List[Tuple]:
             try:
                 response = fetch_yahoo_data(yahoo_ticker,
                                             'balanceSheetHistory,incomeStatementHistory,cashflowStatementHistory')
+                logger.info('Succeeded getting ticker, isin: %s, %s' % (yahoo_ticker, isin))
             except Exception:
-                logger.error('Something went wrong getting ticker %s' % yahoo_ticker)
-                logger.error(format_exc)
+                logger.error('Something went wrong getting ticker, isin: %s, %s' % (yahoo_ticker, isin))
+                logger.error(format_exc())
                 continue
             responses.append((response, isin))
         else:
@@ -30,14 +32,14 @@ def fetch_yahoo_responses() -> List[Tuple]:
     return responses
 
 
-def traverse_statement_history(model: Union[IncomeStatement,
+def traverse_statement_history(Model: Union[IncomeStatement,
                                             BalanceSheetStatement,
                                             CashFlowStatement],
                                isin: str,
                                statements: List[Dict]) -> List[Base]:
     data = []
     for statement in statements:
-        data.append(model.process_response(statement, isin))
+        data.append(Model.process_response(statement, isin))
     return data
 
 
@@ -45,7 +47,7 @@ class StockFinancialStatementsETL(ETLBase):
 
     @staticmethod
     def job() -> None:
-        data: List[List] = []
+        data: List[Base] = []
         responses: List[Dict] = fetch_yahoo_responses()
         for response in responses:
             payload: Dict = response[0]
@@ -53,14 +55,13 @@ class StockFinancialStatementsETL(ETLBase):
             income_statement_response: List = get_nested(payload,
                                                          'incomeStatementHistory', 'incomeStatementHistory',
                                                          default=[])
-            data.append(traverse_statement_history(IncomeStatement, isin, income_statement_response))
+            data = data + traverse_statement_history(IncomeStatement, isin, income_statement_response)
             cash_flow_statement_response: List = get_nested(payload,
                                                             'cashflowStatementHistory', 'cashflowStatements',
                                                             default=[])
-            data.append(traverse_statement_history(CashFlowStatement, isin, cash_flow_statement_response))
+            data = data + traverse_statement_history(CashFlowStatement, isin, cash_flow_statement_response)
             balance_sheet_statement_response: List = get_nested(payload,
                                                                 'balanceSheetHistory', 'balanceSheetStatements',
                                                                 default=[])
-            data.append(traverse_statement_history(BalanceSheetStatement, isin, balance_sheet_statement_response))
-        for statement_data in data:
-            ETLBase.load_data(statement_data)
+            data = data + traverse_statement_history(BalanceSheetStatement, isin, balance_sheet_statement_response)
+        ETLBase.load_data(data)

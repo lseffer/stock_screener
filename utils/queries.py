@@ -17,5 +17,5 @@ def fetch_isins_not_updated_financials(Model: Union[IncomeStatement,
     session = Session()
     res: List[Tuple] = session.query(Stock.isin, Stock.yahoo_ticker).filter(~Stock.isin.in_(
         session.query(Model.isin).filter(func.extract('year', Model.report_date) == get_last_year().year).all()
-    )).all()
+    )).group_by(Stock.isin, Stock.yahoo_ticker).all()
     return res

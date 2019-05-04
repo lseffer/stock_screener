@@ -27,6 +27,7 @@ class ETLBase(ABC):
         else:
             logger.info('No data to load')
 
+    @staticmethod
     @abstractmethod
     def job() -> None:
         pass

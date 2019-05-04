@@ -3,6 +3,8 @@ import threading
 from traceback import format_exc
 import datetime
 from schedule import Scheduler
+import logging
+from typing import Callable
 from utils.config import logger
 from utils.stock_info_etl import StockInfoETL
 from utils.stock_valuation_etl import StockValuationETL
@@ -18,7 +20,7 @@ class SafeScheduler(Scheduler):
     whether other jobs will run or if they'll crash the entire script.
     """
 
-    def __init__(self, reschedule_on_failure=True, logger=None):
+    def __init__(self, reschedule_on_failure: bool = True, logger: logging.Logger = None) -> None:
         """
         If reschedule_on_failure is True, jobs will be rescheduled for their
         next run as if they had completed successfully. If False, they'll run
@@ -28,7 +30,7 @@ class SafeScheduler(Scheduler):
         self.reschedule_on_failure = reschedule_on_failure
         super().__init__()
 
-    def _run_job(self, job):
+    def _run_job(self, job: Callable) -> None:
         try:
             super()._run_job(job)
         except Exception:
@@ -38,7 +40,7 @@ class SafeScheduler(Scheduler):
             job._schedule_next_run()
 
 
-def run_threaded(job_func):
+def run_threaded(job_func: Callable) -> None:
     job_thread = threading.Thread(target=job_func)
     job_thread.start()
 

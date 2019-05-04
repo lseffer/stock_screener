@@ -5,8 +5,9 @@ from datetime import datetime, date
 from logging.handlers import TimedRotatingFileHandler
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 
-def get_last_year() -> datetime:
+def get_last_year() -> date:
     return date(datetime.utcnow().year - 1, 12, 31)
 
 
@@ -23,7 +24,7 @@ YAHOO_API_PARAMS = {"formatted": "false",
                     "corsDomain": "finance.yahoo.com"}
 
 
-def create_pg_engine():
+def create_pg_engine() -> Engine:
     engine = create_engine('postgresql://%s:%s@%s/%s' %
                            (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_DB))
     return engine
@@ -33,7 +34,7 @@ engine = create_pg_engine()
 Session = sessionmaker(bind=engine)
 
 
-def setup_logging(level=logging.INFO):
+def setup_logging(level: int = logging.INFO) -> logging.Logger:
     log = logging.getLogger()
     log.setLevel(level)
     formatter = logging.Formatter('%(asctime)s - %(module)s - %(funcName)s - %(levelname)s - %(message)s')

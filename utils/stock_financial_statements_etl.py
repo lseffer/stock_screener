@@ -3,17 +3,17 @@ from utils.queries import fetch_isins_not_updated_financials
 from utils.models import Base, BalanceSheetStatement, CashFlowStatement, IncomeStatement
 from utils.config import logger
 from utils.etl_base import ETLBase
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Any
 from traceback import format_exc
 
 
 def fetch_yahoo_responses() -> List[Tuple]:
     tickers: List[List] = []
-    for model in [BalanceSheetStatement, CashFlowStatement, IncomeStatement]:
-        tickers.append(fetch_isins_not_updated_financials(model))
+    for model in [IncomeStatement, BalanceSheetStatement, CashFlowStatement]:
+        tickers.append(fetch_isins_not_updated_financials(model))  # type: ignore
     tickers_unique: List[Tuple] = union_of_list_elements(*tickers)
     logger.info('Fetching financials from %s stocks' % len(tickers_unique))
-    responses = []
+    responses: List[Tuple[Any, ...]] = []
     for ticker_tuple in tickers_unique:
         if len(ticker_tuple) == 2:
             isin: str = ticker_tuple[0]
@@ -48,20 +48,23 @@ class StockFinancialStatementsETL(ETLBase):
     @staticmethod
     def job() -> None:
         data: List[Base] = []
-        responses: List[Dict] = fetch_yahoo_responses()
+        responses: List[Tuple] = fetch_yahoo_responses()
         for response in responses:
             payload: Dict = response[0]
             isin: str = response[1]
             income_statement_response: List = get_nested(payload,
                                                          'incomeStatementHistory', 'incomeStatementHistory',
                                                          default=[])
-            data = data + traverse_statement_history(IncomeStatement, isin, income_statement_response)
+            data = data + traverse_statement_history(Model=IncomeStatement,  # type: ignore
+                                                     isin=isin, statements=income_statement_response)
             cash_flow_statement_response: List = get_nested(payload,
                                                             'cashflowStatementHistory', 'cashflowStatements',
                                                             default=[])
-            data = data + traverse_statement_history(CashFlowStatement, isin, cash_flow_statement_response)
+            data = data + traverse_statement_history(Model=CashFlowStatement,  # type: ignore
+                                                     isin=isin, statements=cash_flow_statement_response)
             balance_sheet_statement_response: List = get_nested(payload,
                                                                 'balanceSheetHistory', 'balanceSheetStatements',
                                                                 default=[])
-            data = data + traverse_statement_history(BalanceSheetStatement, isin, balance_sheet_statement_response)
+            data = data + traverse_statement_history(Model=BalanceSheetStatement,  # type: ignore
+                                                     isin=isin, statements=balance_sheet_statement_response)
         ETLBase.load_data(data)

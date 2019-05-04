@@ -13,7 +13,7 @@ class Stock(Base):
     sector = Column(String)
     yahoo_ticker = Column(String)
     dw_created = Column(DateTime, default=datetime.utcnow)
-    dw_modified = Column(DateTime, default=datetime.utcnow)
+    dw_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @staticmethod
     def parse_yahoo_ticker_from_isin(record: Dict[str, str]) -> str:

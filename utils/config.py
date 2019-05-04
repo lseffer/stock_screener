@@ -14,6 +14,7 @@ HOME = os.environ.get('HOME', None)
 POSTGRES_USER = os.environ.get('POSTGRES_USER', None)
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', None)
 POSTGRES_DB = os.environ.get('POSTGRES_DB', None)
+POSTGRES_HOST = os.environ.get('POSTGRES_HOST', None)
 
 YAHOO_API_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
 YAHOO_API_PARAMS = {"formatted": "false",
@@ -23,8 +24,8 @@ YAHOO_API_PARAMS = {"formatted": "false",
 
 
 def create_pg_engine():
-    engine = create_engine('postgresql://%s:%s@database/%s' %
-                           (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB))
+    engine = create_engine('postgresql://%s:%s@%s/%s' %
+                           (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_DB))
     return engine
 
 

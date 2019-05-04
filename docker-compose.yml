@@ -4,6 +4,7 @@ x-common-variables: &common-variables
   POSTGRES_USER: test
   POSTGRES_PASSWORD: test
   POSTGRES_DB: master
+  POSTGRES_HOST: database
 
 services:
   database:

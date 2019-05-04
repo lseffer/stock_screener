@@ -33,7 +33,7 @@ class BalanceSheetStatement(Base):
     total_stockholder_equity = Column(Float)
     net_tangible_assets = Column(Float)
     dw_created = Column(DateTime, default=datetime.utcnow)
-    dw_modified = Column(DateTime, default=datetime.utcnow)
+    dw_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @classmethod
     def process_response(cls, response: Dict, isin: str) -> Base:

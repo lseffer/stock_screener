@@ -26,7 +26,7 @@ class CashFlowStatement(Base):
     repurchase_of_stock = Column(Float)
     issuance_of_stock = Column(Float)
     dw_created = Column(DateTime, default=datetime.utcnow)
-    dw_modified = Column(DateTime, default=datetime.utcnow)
+    dw_modified = Column(DateTime, default=datetime.utcnow, , onupdate=datetime.utcnow)
 
     @classmethod
     def process_response(cls, response: Dict, isin: str) -> Base:

@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, List
 from utils.config import YAHOO_API_BASE_URL, YAHOO_API_PARAMS
 
 
@@ -24,3 +24,8 @@ def fetch_yahoo_data(yahoo_ticker: str, modules: str) -> Dict:
     params['modules'] = modules
     response = make_yahoo_request(yahoo_ticker, params)
     return response
+
+
+def union_of_list_elements(*lists: List[Any]) -> List[Any]:
+    lists_appended: List[Any] = sum(lists, [])
+    return list(set(lists_appended))

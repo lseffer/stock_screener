@@ -24,7 +24,6 @@ class ETLBase(ABC):
         logger.info('Chunked commit at %s records' % idx)
         session.close()
 
-    @staticmethod
     @abstractmethod
     def job() -> None:
         pass

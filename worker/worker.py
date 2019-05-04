@@ -6,6 +6,7 @@ from schedule import Scheduler
 from utils.config import logger
 from utils.stock_info_etl import StockInfoETL
 from utils.stock_valuation_etl import StockValuationETL
+from utils.stock_financial_statements_etl import StockFinancialStatementsETL
 
 
 class SafeScheduler(Scheduler):
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     scheduler.every(10).seconds.do(run_threaded, job)
     scheduler.every().saturday.at("00:00").do(run_threaded, StockInfoETL.job)
     scheduler.every().sunday.at("00:00").do(run_threaded, StockValuationETL.job)
+    scheduler.every().sunday.at("06:00").do(run_threaded, StockFinancialStatementsETL.job)
     while True:
         logger.debug('Heartbeat 5 seconds')
         scheduler.run_pending()

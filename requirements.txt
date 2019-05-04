@@ -13,7 +13,6 @@ dash-table==3.6.0
 decorator==4.4.0
 Flask==1.0.2
 Flask-Compress==1.4.0
-git+https://github.com/lseffer/good-morning
 idna==2.8
 ipython-genutils==0.2.0
 itsdangerous==1.1.0
@@ -24,6 +23,7 @@ lxml==4.3.3
 Mako==1.0.9
 MarkupSafe==1.1.1
 mypy==0.701
+mypy-extensions==0.4.1
 nbformat==4.4.0
 numpy==1.16.2
 pandas==0.24.2
@@ -42,5 +42,7 @@ soupsieve==1.9.1
 SQLAlchemy==1.3.3
 sqlalchemy-stubs==0.1
 traitlets==4.3.2
+typed-ast==1.3.4
+typing-extensions==3.7.2
 urllib3==1.24.2
 Werkzeug==0.15.2

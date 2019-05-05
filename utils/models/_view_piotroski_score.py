@@ -1,29 +1,8 @@
-from utils.models import Stock, IncomeStatement, BalanceSheetStatement, CashFlowStatement
-from typing import List, Tuple, Union
-from utils.config import Session, get_last_year
-from sqlalchemy import func
+from utils.alembic_helpers import ReplaceableObject
 
-
-def fetch_all_tickers_from_database() -> List[Tuple]:
-    session = Session()
-    res: List[Tuple] = session.query(Stock.isin, Stock.yahoo_ticker).group_by(Stock.isin, Stock.yahoo_ticker).all()
-    session.close()
-    return res
-
-
-def fetch_isins_not_updated_financials(Model: Union[IncomeStatement,
-                                                    BalanceSheetStatement,
-                                                    CashFlowStatement]) -> List[Tuple]:
-    session = Session()
-    res: List[Tuple] = session.query(Stock.isin, Stock.yahoo_ticker).filter(~Stock.isin.in_(
-        session.query(Model.isin).filter(func.extract('year', Model.report_date) == get_last_year().year).all()
-    )).group_by(Stock.isin, Stock.yahoo_ticker).all()
-    return res
-
-
-piotroski_score_view_definition: str = """
-CREATE OR REPLACE VIEW
-    piotroski_score AS
+PiotroskiScore = ReplaceableObject(
+    "piotroski_score",
+    """
 SELECT
     isin,
     report_date,
@@ -165,4 +144,5 @@ FROM
                     balance_sheet_statements AS c
                 USING
                     (isin, report_date) ) AS a) AS a
-"""
+    """
+)

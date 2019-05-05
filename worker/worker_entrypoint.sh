@@ -18,7 +18,7 @@ wait_for_port() {
   done
 }
 
-wait_for_port "Postgres" "database" "5432"
+wait_for_port "Postgres" ${POSTGRES_HOST} "5432"
 sleep 10
 
 alembic upgrade head

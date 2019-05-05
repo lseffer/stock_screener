@@ -1,10 +1,10 @@
-.PHONY: run test
+.PHONY: run tests
 
 run: 
 	@echo 'Starting containers...'
 	@docker-compose up -d --build
 
-test: 
+tests: 
 	@echo 'Running tests...'
 	@docker-compose run \
 	  --rm \

@@ -39,12 +39,6 @@ class ReversibleOp(MigrateOperation):
         operations.invoke(create_new)
 
 
-class ReplaceableObject(object):
-    def __init__(self, name, sqltext):
-        self.name = name
-        self.sqltext = sqltext
-
-
 @Operations.register_operation("create_view", "invoke_for_target")
 @Operations.register_operation("replace_view", "replace")
 class CreateViewOp(ReversibleOp):

@@ -1,8 +1,23 @@
-from utils.alembic_helpers import ReplaceableObject
+from sqlalchemy import Column, String, Integer, Date
+from .base import Base
 
-PiotroskiScore = ReplaceableObject(
-    "piotroski_score",
-    """
+
+class PiotroskiScore(Base):
+    __tablename__ = 'piotroski_score'
+    isin = Column(String, primary_key=True)
+    report_date = Column(Date, primary_key=True)
+    p_score_1 = Column(Integer)
+    p_score_2 = Column(Integer)
+    p_score_3 = Column(Integer)
+    p_score_4 = Column(Integer)
+    p_score_5 = Column(Integer)
+    p_score_6 = Column(Integer)
+    p_score_7 = Column(Integer)
+    p_score_8 = Column(Integer)
+    p_score_9 = Column(Integer)
+    p_score = Column(Integer)
+    name = __tablename__
+    sqltext = """
 SELECT
     isin,
     report_date,
@@ -145,4 +160,3 @@ FROM
                 USING
                     (isin, report_date) ) AS a) AS a
     """
-)

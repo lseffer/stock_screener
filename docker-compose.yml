@@ -30,9 +30,10 @@ services:
 
   api:
     build: .
-    command: python /home/worker/app.py
+    command: gunicorn -b 0.0.0.0:5050 app:app
     volumes:
       - ./api:/home/worker
+      - ./utils:/home/worker/utils
     ports:
       - "5050:5050"
     depends_on:

@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 from utils.config import POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 from utils.models import Base
+from utils.alembic_helpers import create_view, drop_view # NOQA
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

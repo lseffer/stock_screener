@@ -1,10 +1,17 @@
 from flask import Flask
-app = Flask('__name__')
+from flask_jsontools import jsonapi
+from utils.queries import screened_stocks
+from utils import ApiJSONEncoder
+
+app = Flask(__name__)
+app.json_encoder = ApiJSONEncoder
 
 
-@app.route('/')
-def hello_world():
-    return 'api'
+@app.route("/stocks", methods=["POST"])
+@jsonapi
+def stocks():
+    result = screened_stocks()
+    return result
 
 
 if __name__ == '__main__':

@@ -13,6 +13,10 @@ dash-table==3.6.0
 decorator==4.4.0
 Flask==1.0.2
 Flask-Compress==1.4.0
+flask_jsontools==0.1.1.post0
+gevent==1.4.0
+greenlet==0.4.15
+gunicorn==19.9.0
 idna==2.8
 ipython-genutils==0.2.0
 itsdangerous==1.1.0

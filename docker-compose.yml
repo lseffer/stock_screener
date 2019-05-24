@@ -18,7 +18,11 @@ services:
 
   web:
     build: .
-    command: python /home/worker/app.py
+    command: gunicorn -b 0.0.0.0:5000 app:app
+    environment: 
+      - STOCKS_USERNAME=hello
+      - STOCKS_PASSWORD=yoyo
+      - STOCKS_API_TOKEN=93793292-2121-4cf8-bac8-6d8a5c65ed57
     volumes:
       - ./web:/home/worker
     ports:
@@ -39,7 +43,9 @@ services:
     depends_on:
       - database
       - worker
-    environment: *common-variables
+    environment: 
+      <<: *common-variables
+      STOCKS_API_TOKEN: 93793292-2121-4cf8-bac8-6d8a5c65ed57
     restart: always
 
   worker:

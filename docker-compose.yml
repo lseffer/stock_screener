@@ -20,32 +20,16 @@ services:
     build: .
     command: gunicorn -b 0.0.0.0:5000 app:app
     environment: 
-      - STOCKS_USERNAME=hello
-      - STOCKS_PASSWORD=yoyo
-      - STOCKS_API_TOKEN=93793292-2121-4cf8-bac8-6d8a5c65ed57
+      <<: *common-variables
+      STOCKS_USERNAME: hello
+      STOCKS_PASSWORD: yoyo
     volumes:
       - ./web:/home/worker
+      - ./utils:/home/worker/utils
     ports:
       - "5000:5000"
     depends_on:
       - database
-      - api
-    restart: always
-
-  api:
-    build: .
-    command: gunicorn -b 0.0.0.0:5050 app:app
-    volumes:
-      - ./api:/home/worker
-      - ./utils:/home/worker/utils
-    ports:
-      - "5050:5050"
-    depends_on:
-      - database
-      - worker
-    environment: 
-      <<: *common-variables
-      STOCKS_API_TOKEN: 93793292-2121-4cf8-bac8-6d8a5c65ed57
     restart: always
 
   worker:

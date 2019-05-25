@@ -1,9 +1,23 @@
-from flask import Flask, request, session, redirect
+from flask import Flask, request, session, redirect, abort
+from flask_jsontools import jsonapi
 from datetime import timedelta
 import os
+from utils.queries import screened_stocks
+from utils import ApiJSONEncoder
+
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
+app.json_encoder = ApiJSONEncoder
 
+
+@app.route("/stocks", methods=["GET"])
+@jsonapi
+def stocks():
+    if session.get('logged_in'):
+        result = screened_stocks()
+        return result
+    else:
+        return abort(401)
 
 @app.before_request
 def make_session_permanent():

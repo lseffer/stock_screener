@@ -1,7 +1,14 @@
-from flask import Flask, request, session, flash
+from flask import Flask, request, session, redirect
+from datetime import timedelta
 import os
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
+
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=60)
 
 
 @app.route('/')
@@ -17,9 +24,13 @@ def login():
     if request.form.get('password') == os.getenv('STOCKS_PASSWORD') and \
             request.form.get('username') == os.getenv('STOCKS_USERNAME'):
         session['logged_in'] = True
-    else:
-        flash('Wrong login credentials!')
-    return index()
+    return redirect('/')
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session['logged_in'] = False
+    return redirect('/')
 
 
 if __name__ == '__main__':

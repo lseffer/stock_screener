@@ -24,11 +24,11 @@ jobs:
 
       - run:
           name: run tests
-          commands: |
+          command: |
             make tests
       
       - run:
           name: stop containers
           when: always
-          commands: |
+          command: |
             make stop

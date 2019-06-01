@@ -25,5 +25,5 @@ def screened_stocks() -> List[Dict]:
     session = Session()
     res: List[Tuple] = session.query(PiotroskiScore)\
         .filter(func.extract('year', PiotroskiScore.report_date) == get_last_year().year).all()
-    res1 = [row.__json__() for row in res]
+    res1 = [row.__json__() for row in res]  # type: ignore
     return res1

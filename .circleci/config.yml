@@ -15,6 +15,10 @@ jobs:
     working_directory: ~/stock_screener
 
     steps:
+      - run:
+          name: fix permissions
+          command: chown -R $USER:$USER ~/stock_screener/worker
+
       - checkout
 
       - run:

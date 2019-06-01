@@ -1,9 +1,23 @@
 <!DOCTYPE html>
-<head></head>
+
+<head>
+    <link href="static/css/login.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#76b852">
+    <link rel="shortcut icon" href="static/img/favicon.png">
+    <title>Login</title>
+</head>
+
 <body>
-    <form action="/login" method="POST">
-        <input type="username" name="username" placeholder="Username">
-        <input type="password" name="password" placeholder="Password">
-        <input type="submit" value="Submit">
-    </form>
+    <div class="login-page">
+        <div class="form">
+            <form class="login-form" action="/login" method="POST">
+                <input type="username" name="username" placeholder="Username">
+                <input type="password" name="password" placeholder="Password">
+                <button><input style="display: none" type="submit" value="login">login</button>
+            </form>
+        </div>
+    </div>
 </body>

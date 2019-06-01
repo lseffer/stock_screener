@@ -19,7 +19,7 @@ jobs:
 
       - run:
           name: fix permissions
-          command: chown -R $USER:$USER ~/stock_screener/stock_screener/worker
+          command: chown -R $USER:$USER ~/stock_screener/*
 
       - run:
           name: start containers

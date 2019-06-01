@@ -14,7 +14,7 @@
         <h1>Nordic stock screener</h1>
         <button onclick="reload_table()">Reload table</button>
         <div style="margin-left: 10%; margin-right: 10%; width: 80%" id="example-table"></div>
-        <a id="download_data_link" href=""><button>Download csv</button></a>
+        <a id="download_data_link" href="#"><button>Download csv</button></a>
         <form action="/logout" method="POST"><input type="submit" value="Logout"></form>
     </div>
 
@@ -53,6 +53,7 @@
 
             dl_link.onclick = function () {
                 table.download("csv", "data.csv");
+                return false;
             }
         };
 

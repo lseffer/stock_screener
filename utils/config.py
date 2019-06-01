@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
+
 def get_last_year() -> date:
     return date(datetime.utcnow().year - 1, 12, 31)
 

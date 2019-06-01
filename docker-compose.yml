@@ -18,11 +18,12 @@ services:
 
   web:
     build: .
-    command: gunicorn -b 0.0.0.0:5000 app:app
+    command: gunicorn -w 3 -k gevent -b 0.0.0.0:5000 app:app
     environment: 
       <<: *common-variables
       STOCKS_USERNAME: hello
       STOCKS_PASSWORD: yoyo
+      SESSION_SECRET: '897f35f8d104e4a9e4a67f8d757b0dbd4028f85aed24c721ee4d79e618cc9560'
     volumes:
       - ./web:/home/worker
       - ./utils:/home/worker/utils

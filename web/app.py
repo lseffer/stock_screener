@@ -1,12 +1,12 @@
 from flask import Flask, request, session, redirect, abort
 from flask_jsontools import jsonapi
 from datetime import timedelta
-import os
 from utils.queries import screened_stocks
 from utils import ApiJSONEncoder
+import os
 
 app = Flask(__name__)
-app.secret_key = os.urandom(32)
+app.secret_key = os.getenv('SESSION_SECRET')
 app.json_encoder = ApiJSONEncoder
 
 
@@ -18,6 +18,7 @@ def stocks():
         return result
     else:
         return abort(401)
+
 
 @app.before_request
 def make_session_permanent():

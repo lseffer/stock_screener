@@ -15,11 +15,11 @@ jobs:
     working_directory: ~/stock_screener
 
     steps:
+      - checkout
+
       - run:
           name: fix permissions
-          command: chown -R $USER:$USER ~/stock_screener/worker
-
-      - checkout
+          command: chown -R $USER:$USER ~/stock_screener/stock_screener/worker
 
       - run:
           name: start containers

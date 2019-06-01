@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/lseffer/stock_screener.svg?style=svg)](https://circleci.com/gh/lseffer/stock_screener)
+
 # Stock screener
 For stocks listed on Nasdaq OMX Nordic 
 

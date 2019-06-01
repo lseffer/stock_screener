@@ -5,6 +5,10 @@
 version: 2
 jobs:
   build:
+    branches:
+      only:
+        - master
+        - v3.0-service
     machine: true
       docker_layer_caching: true
 

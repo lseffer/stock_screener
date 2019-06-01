@@ -1,16 +1,11 @@
 version: '3.7'
 
-x-common-variables: &common-variables
-  POSTGRES_USER: test
-  POSTGRES_PASSWORD: test
-  POSTGRES_DB: master
-  POSTGRES_HOST: database
-
 services:
   database:
     image: postgres:11.2
     restart: always
-    environment: *common-variables
+    env_file:
+      - dev-vars.env
     ports:
     - "5432:5432"
     volumes:
@@ -19,11 +14,8 @@ services:
   web:
     build: .
     command: gunicorn -w 3 -k gevent -b 0.0.0.0:5000 app:app
-    environment: 
-      <<: *common-variables
-      STOCKS_USERNAME: hello
-      STOCKS_PASSWORD: yoyo
-      SESSION_SECRET: '897f35f8d104e4a9e4a67f8d757b0dbd4028f85aed24c721ee4d79e618cc9560'
+    env_file:
+      - dev-vars.env
     volumes:
       - ./web:/home/worker
       - ./utils:/home/worker/utils
@@ -42,5 +34,6 @@ services:
       - ./tests:/home/worker/tests
     depends_on:
       - database
-    environment: *common-variables
+    env_file:
+      - dev-vars.env
     restart: always

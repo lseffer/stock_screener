@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  database:
+    networks:
+      - backend
+    env_file:
+      - prod-vars.env
+
+  web:
+    networks:
+      - backend
+      - frontend
+    env_file:
+      - prod-vars.env
+
+  worker:
+    networks:
+      - backend
+      - frontend
+    env_file:
+      - prod-vars.env
+
+networks: 
+  backend:
+    internal: true
+  frontend:
+    internal: false

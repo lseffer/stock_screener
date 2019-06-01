@@ -12,14 +12,10 @@ jobs:
     machine:
       docker_layer_caching: true
 
-    working_directory: ~/stock_screener
+    working_directory: ~/project
 
     steps:
       - checkout
-
-      - run:
-          name: fix permissions
-          command: chown -R $USER:$USER ~/stock_screener/*
 
       - run:
           name: start containers

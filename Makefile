@@ -14,6 +14,7 @@ tests:
 	  --rm \
 	  --no-deps \
 	  --entrypoint='' \
+	  -e APP_ENV=test \
 	  worker \
 	  bash -c "python -m unittest discover tests/ -v \
 	  && python -m mypy --config-file tests/mypy.ini utils/"

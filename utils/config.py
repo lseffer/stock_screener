@@ -12,11 +12,12 @@ def get_last_year() -> date:
     return date(datetime.utcnow().year - 1, 12, 31)
 
 
-HOME = os.environ.get('HOME', None)
-POSTGRES_USER = os.environ.get('POSTGRES_USER', None)
-POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', None)
-POSTGRES_DB = os.environ.get('POSTGRES_DB', None)
-POSTGRES_HOST = os.environ.get('POSTGRES_HOST', None)
+APP_ENV = os.getenv('APP_ENV')
+HOME = os.getenv('HOME', None)
+POSTGRES_USER = os.getenv('POSTGRES_USER', None)
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', None)
+POSTGRES_DB = os.getenv('POSTGRES_DB', None)
+POSTGRES_HOST = os.getenv('POSTGRES_HOST', None)
 
 YAHOO_API_BASE_URL = "https://query1.finance.yahoo.com/v11/finance/quoteSummary/{}"
 YAHOO_API_PARAMS = {"formatted": "false",
@@ -43,13 +44,14 @@ def setup_logging(level: int = logging.INFO) -> logging.Logger:
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
     stdout_handler.setLevel(level)
-
-    timed_filehandler = TimedRotatingFileHandler('%s/worker.log' % HOME, when='D', interval=14)
-    timed_filehandler.setFormatter(formatter)
-    timed_filehandler.setLevel(level)
-
     log.addHandler(stdout_handler)
-    log.addHandler(timed_filehandler)
+
+    if APP_ENV != 'test':
+        timed_filehandler = TimedRotatingFileHandler('%s/worker.log' % HOME, when='D', interval=14)
+        timed_filehandler.setFormatter(formatter)
+        timed_filehandler.setLevel(level)
+        log.addHandler(timed_filehandler)
+
     return log
 
 

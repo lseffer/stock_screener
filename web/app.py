@@ -1,4 +1,4 @@
-from flask import Flask, request, session, redirect, abort
+from flask import Flask, request, session, redirect, abort, url_for
 from flask_jsontools import jsonapi
 from datetime import timedelta
 from utils.queries import screened_stocks
@@ -39,13 +39,13 @@ def login():
     if request.form.get('password') == os.getenv('STOCKS_PASSWORD') and \
             request.form.get('username') == os.getenv('STOCKS_USERNAME'):
         session['logged_in'] = True
-    return redirect('/')
+    return redirect(url_for('index', _external=True))
 
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session['logged_in'] = False
-    return redirect('/')
+    return redirect(url_for('index', _external=True))
 
 
 if __name__ == '__main__':

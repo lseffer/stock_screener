@@ -39,13 +39,13 @@ def login():
     if request.form.get('password') == os.getenv('STOCKS_PASSWORD') and \
             request.form.get('username') == os.getenv('STOCKS_USERNAME'):
         session['logged_in'] = True
-    return redirect(url_for('index', _external=True))
+    return redirect(url_for('.index', _external=True))
 
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session['logged_in'] = False
-    return redirect(url_for('index', _external=True))
+    return redirect(url_for('.index', _external=True))
 
 
 if __name__ == '__main__':

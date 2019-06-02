@@ -18,7 +18,7 @@
             <h1>Nordic stock screener</h1>
             <button id="reload" class="actionbtn" onclick="reload_table()">Reload table</button>
             <a id="download_data_link" href="#"><button class="actionbtn">Download csv</button></a>
-            <form id="logout" action="/logout" method="POST"><button class="actionbtn"><input style="display: none"
+            <form id="logout" action="./logout" method="POST"><button class="actionbtn"><input style="display: none"
                         type="submit" value="Logout">Logout</button></form>
         </div>
         <div class="tablecontainer">
@@ -70,7 +70,7 @@
         };
 
         function reload_table() {
-            ajax_get('/stocks', function (data) {
+            ajax_get('./stocks', function (data) {
                 update_table(data)
             });
         };

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <head>
-    <link href="static/css/tabulator_site.min.css" rel="stylesheet">
+    <link href="static/css/tabulator_simple.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
     <link href="static/css/index.css" rel="stylesheet">
     <script type="text/javascript" src="static/js/tabulator.min.js"></script>
@@ -13,12 +13,21 @@
 </head>
 
 <body>
-    <div>
-        <h1>Nordic stock screener</h1>
-        <button onclick="reload_table()">Reload table</button>
-        <div style="margin-left: 10%; margin-right: 10%; width: 80%" id="example-table"></div>
-        <a id="download_data_link" href="#"><button>Download csv</button></a>
-        <form action="/logout" method="POST"><input type="submit" value="Logout"></form>
+    <div class="main">
+        <div class="buttonribbon">
+            <h1>Nordic stock screener</h1>
+            <button id="reload" class="actionbtn" onclick="reload_table()">Reload table</button>
+            <a id="download_data_link" href="#"><button class="actionbtn">Download csv</button></a>
+            <form id="logout" action="/logout" method="POST"><button class="actionbtn"><input style="display: none"
+                        type="submit" value="Logout">Logout</button></form>
+        </div>
+        <div class="tablecontainer">
+            <div class="tablewrapper">
+                <div id="example-table"></div>
+            </div>
+        </div>
+
+
     </div>
 
     <script type="text/javascript">

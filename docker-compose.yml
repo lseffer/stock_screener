@@ -20,7 +20,7 @@ services:
       - ./web:/home/worker
       - ./utils:/home/worker/utils
     ports:
-      - "5000"
+      - "5000:5000"
     depends_on:
       - database
     restart: always

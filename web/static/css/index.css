@@ -22,38 +22,76 @@ html {
     -moz-osx-font-smoothing: grayscale;
 }
 
-.buttonribbon {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 10px;
-    height: 100px;
+@media only screen and (max-width: 600px) {
+    .buttonribbon {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+    }
+    .buttonribbon h1 {
+        margin-bottom: auto;
+    }
+    .actionbtn {
+        border-radius: 25px;
+        width: 100%;
+        font-family: "Open Sans", Helvetica, Verdana, sans-serif;
+        text-transform: uppercase;
+        outline: 0;
+        background: #4CAF50;
+        border: 0;
+        padding: 15px;
+        color: #FFFFFF;
+        -webkit-transition: all 0.3 ease;
+        transition: all 0.3 ease;
+        cursor: pointer;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .actionbtn:hover, .form .actionbtn:active, .form .actionbtn:focus {
+        background: #43A047;
+    }
+    #logout {
+        width: 100%;
+    }
+    #download_data_link {
+        width: 100%;
+    }
 }
 
-.buttonribbon h1 {
-    margin-right: auto;
-}
-
-.actionbtn {
-    border-radius: 25px;
-    width: 120px;
-    font-family: "Open Sans", Helvetica, Verdana, sans-serif;
-    text-transform: uppercase;
-    outline: 0;
-    background: #4CAF50;
-    border: 0;
-    padding: 15px;
-    color: #FFFFFF;
-    -webkit-transition: all 0.3 ease;
-    transition: all 0.3 ease;
-    cursor: pointer;
-    margin-left: 20px;
-}
-
-.actionbtn:hover, .form .actionbtn:active, .form .actionbtn:focus {
-    background: #43A047;
+@media only screen and (min-width: 600px) {
+    .buttonribbon {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 10px;
+        height: 100px;
+    }
+    .buttonribbon h1 {
+        margin-right: auto;
+    }
+    .actionbtn {
+        border-radius: 25px;
+        width: 120px;
+        font-family: "Open Sans", Helvetica, Verdana, sans-serif;
+        text-transform: uppercase;
+        outline: 0;
+        background: #4CAF50;
+        border: 0;
+        padding: 15px;
+        color: #FFFFFF;
+        -webkit-transition: all 0.3 ease;
+        transition: all 0.3 ease;
+        cursor: pointer;
+        margin-left: 20px;
+    }
+    .actionbtn:hover, .form .actionbtn:active, .form .actionbtn:focus {
+        background: #43A047;
+    }
 }
 
 .main {

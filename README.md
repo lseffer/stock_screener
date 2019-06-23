@@ -1,7 +1,9 @@
 [![CircleCI](https://circleci.com/gh/lseffer/stock_screener.svg?style=svg)](https://circleci.com/gh/lseffer/stock_screener)
 
 # Stock screener
-For stocks listed on Nasdaq OMX Nordic
+For stocks listed on Nasdaq OMX Nordic.
+
+![](app_screenshot.png?raw=true)
 
 This is a hobby project that helpes me make better investment decisions, while helping me learn new things. I haven't followed any investment strategy to the letter, but the screener helps me find good stocks and weed out the crap.
 
@@ -23,6 +25,7 @@ This stock screener consists of 3 services
 * Worker service scheduling and executing jobs that fetch the data about the stocks and stores that in the database
 * Web server for serving a front end with a login portal
   * Flask app served by gunicorn
+  * Configured for nginx
 
 ## Usage:
 * Install Docker and Docker-compose

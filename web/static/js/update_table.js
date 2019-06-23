@@ -17,19 +17,49 @@ function ajax_get(url, callback) {
     xmlhttp.send();
 }
 
+function get_screen_resolution() {
+    var width = window.innerWidth
+        || document.documentElement.clientWidth
+        || document.body.clientWidth;
+
+    var height = window.innerHeight
+        || document.documentElement.clientHeight
+        || document.body.clientHeight;
+
+    return { "width": width, "height": height }
+}
+
+function frozen_cols_checker() {
+    dims = get_screen_resolution();
+    if (dims["width"] <= 600) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+function table_height_large_screen() {
+    dims = get_screen_resolution();
+    if (dims["height"] >= 800) {
+        return "700px";
+    } else {
+        return "500px";
+    }
+}
+
 //define table
 function update_table(data) {
 
     var table = new Tabulator("#example-table", {
         columns: [
             {
-                title: "isin", field: "isin", frozen: true, headerFilter: true, formatter: "link", formatterParams: {
+                title: "isin", field: "isin", frozen: frozen_cols_checker(), headerFilter: true, formatter: "link", formatterParams: {
                     labelField: "isin",
                     urlPrefix: "https://www.google.com/search?q=",
                     target: "_blank",
                 }
             },
-            { title: "company_name", field: "company_name", frozen: true, headerFilter: true },
+            { title: "company_name", field: "company_name", frozen: frozen_cols_checker(), headerFilter: true },
             { title: "symbol", field: "symbol", headerFilter: true },
             { title: "currency", field: "currency", headerFilter: true },
             { title: "sector", field: "sector", headerFilter: true },
@@ -54,7 +84,7 @@ function update_table(data) {
             { title: "ev_ebitda_ratio", field: "ev_ebitda_ratio", headerFilter: "number", headerFilterFunc: ">=", formatter: "money" },
             { title: "magic_formula_score", field: "magic_formula_score", headerFilter: "number", headerFilterFunc: ">=", formatter: "money" }
         ],
-        height: "500px",
+        height: table_height_large_screen(),
         data: data,
         autoColumns: false,
         layout: "fitDataFill",

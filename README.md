@@ -1,30 +1,38 @@
+[![CircleCI](https://circleci.com/gh/lseffer/stock_screener.svg?style=svg)](https://circleci.com/gh/lseffer/stock_screener)
+
 # Stock screener
-For stocks listed on Nasdaq OMX Nordic 
+For stocks listed on Nasdaq OMX Nordic
 
-Script fetches data from Yahoo and Morningstar APIs and outputs stocks ranked from best to worst to Google spreadsheets.
+This is a hobby project that helpes me make better investment decisions, while helping me learn new things. I haven't followed any investment strategy to the letter, but the screener helps me find good stocks and weed out the crap.
 
-__Loosely based on:__	
+I'm working on this project very sporadically and the code could be more beautiful but who has time for that?
+
+__Loosely based on:__
 
 Piotroski F-Score - https://en.wikipedia.org/wiki/Piotroski_F-Score
 
 Magic Formula -	https://en.wikipedia.org/wiki/Magic_formula_investing
 
-CROIC - Cash Return On Invested Capital - https://www.oldschoolvalue.com/stock-screener/cash-return-on-invested-capital-croic-stock-screen.php
-
 NCAV - Net Current Asset Value - https://www.oldschoolvalue.com/blog/investing-strategy/backtest-graham-nnwc-ncav-screen/
 
-NNCW - Net Net Working Capital - https://www.oldschoolvalue.com/blog/investing-strategy/backtest-graham-nnwc-ncav-screen/
+## Architecture
+
+This stock screener consists of 3 services
+
+* Postgres database
+* Worker service scheduling and executing jobs that fetch the data about the stocks and stores that in the database
+* Web server for serving a front end with a login portal
+  * Flask app served by gunicorn
 
 ## Usage:
-* Create Google Service Account Credentials JSON
-    * Instructions: http://gspread.readthedocs.io/en/latest/oauth2.html
-* Create a spreadsheet file in your Google Drive and share it with client_email found in above mentioned JSON file.
-
-Then run
-* `pip install --upgrade -r requirements.txt`
-* `python stock_screener.py --sac_file path/to/sac_file.json --gspreadsheet name_or_id_of_your_spreadsheet`
+* Install Docker and Docker-compose
+* run the `make run` target
+* Go to `localhost:5000` and login with credentials found in `dev-vars.env`
+  * For a production setup use the `make run_prod` target with your own secret `prod-vars.env`
 
 ## TO DO:
 * Add more screening methods
-* Add more columns OR useful information to the google spreadsheet output
+* Add more tests
+* Possibly refactor the ETL job scripts
+* Add a job for sending same data to Google Sheets (like in previous version)
 * Ask for feedback

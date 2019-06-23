@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+.bash_history
+.python_history
+.vscode/
+.mypy_cache/
+
+postgres-data/
 stock_data/*
 
 # C extensions
@@ -47,6 +53,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+.local
 
 # Translations
 *.mo

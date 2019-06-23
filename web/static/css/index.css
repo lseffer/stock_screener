@@ -1,0 +1,103 @@
+html {
+    min-height: 100%;
+    background: #ffffff;
+    /* Old Browsers */
+    background: -moz-linear-gradient(top, #ffffff 0%, #f6f6f6 47%, #ededed 100%);
+    /* FF3.6+ */
+    background: -webkit-gradient(left top, left bottom, color-stop(0%, #ffffff), color-stop(47%, #f6f6f6), color-stop(100%, #ededed));
+    /* Chrome, Safari4+ */
+    background: -webkit-linear-gradient(top, #ffffff 0%, #f6f6f6 47%, #ededed 100%);
+    /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top, #ffffff 0%, #f6f6f6 47%, #ededed 100%);
+    /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #ffffff 0%, #f6f6f6 47%, #ededed 100%);
+    /* IE 10+ */
+    background: linear-gradient(to bottom, #ffffff 0%, #f6f6f6 47%, #ededed 100%);
+    /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#ededed', GradientType=0);
+    /* IE6-9 */
+    font-family: "Open Sans", Helvetica, Verdana, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@media only screen and (max-width: 600px) {
+    .buttonribbon {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+    }
+    .buttonribbon h1 {
+        margin-bottom: auto;
+    }
+    .actionbtn {
+        border-radius: 25px;
+        width: 100%;
+        font-family: "Open Sans", Helvetica, Verdana, sans-serif;
+        text-transform: uppercase;
+        outline: 0;
+        background: #4CAF50;
+        border: 0;
+        padding: 15px;
+        color: #FFFFFF;
+        -webkit-transition: all 0.3 ease;
+        transition: all 0.3 ease;
+        cursor: pointer;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .actionbtn:hover, .form .actionbtn:active, .form .actionbtn:focus {
+        background: #43A047;
+    }
+    #logout {
+        width: 100%;
+    }
+    #download_data_link {
+        width: 100%;
+    }
+}
+
+@media only screen and (min-width: 600px) {
+    .buttonribbon {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 10px;
+        height: 100px;
+    }
+    .buttonribbon h1 {
+        margin-right: auto;
+    }
+    .actionbtn {
+        border-radius: 25px;
+        width: 120px;
+        font-family: "Open Sans", Helvetica, Verdana, sans-serif;
+        text-transform: uppercase;
+        outline: 0;
+        background: #4CAF50;
+        border: 0;
+        padding: 15px;
+        color: #FFFFFF;
+        -webkit-transition: all 0.3 ease;
+        transition: all 0.3 ease;
+        cursor: pointer;
+        margin-left: 20px;
+    }
+    .actionbtn:hover, .form .actionbtn:active, .form .actionbtn:focus {
+        background: #43A047;
+    }
+}
+
+.main {
+    padding: 2%;
+}
+
+.tablewrapper {
+    box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
+}

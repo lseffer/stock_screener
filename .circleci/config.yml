@@ -10,7 +10,7 @@ jobs:
         - master
         - v3.0-service
     machine:
-      docker_layer_caching: true
+      docker_layer_caching: false
 
     working_directory: ~/project
 

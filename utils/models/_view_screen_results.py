@@ -40,23 +40,108 @@ SELECT
     yahoo_ticker,
     report_date,
     market_date,
-    p_score,
-    roic,
-    ev_ebitda_ratio_inv,
-    shareholder_yield_stock,
-    shareholder_yield_dividends,
-    price_to_sales,
-    price_to_cash_flow,
-    ncav_ratio,
-    price,
-    target_median_price,
-    number_of_analyst_opinions,
-    ebitda,
-    market_cap,
-    trailing_pe,
-    forward_pe,
-    ev_ebitda_ratio,
-    magic_formula_score
+    CASE
+        WHEN p_score IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            p_score
+        END AS p_score,
+    CASE
+        WHEN roic IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            roic
+        END AS roic,
+    CASE
+        WHEN ev_ebitda_ratio_inv IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            ev_ebitda_ratio_inv
+        END AS ev_ebitda_ratio_inv,
+    CASE
+        WHEN shareholder_yield_stock IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            shareholder_yield_stock
+        END AS shareholder_yield_stock,
+    CASE
+        WHEN shareholder_yield_dividends IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            shareholder_yield_dividends
+        END AS shareholder_yield_dividends,
+    CASE
+        WHEN price_to_sales IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            price_to_sales
+        END AS price_to_sales,
+    CASE
+        WHEN price_to_cash_flow IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            price_to_cash_flow
+        END AS price_to_cash_flow,
+    CASE
+        WHEN ncav_ratio IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            ncav_ratio
+        END AS ncav_ratio,
+    CASE
+        WHEN price IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            price
+        END AS price,
+    CASE
+        WHEN target_median_price IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            target_median_price
+        END AS target_median_price,
+    CASE
+        WHEN number_of_analyst_opinions IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            number_of_analyst_opinions
+        END AS number_of_analyst_opinions,
+    CASE
+        WHEN ebitda IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            ebitda
+        END AS ebitda,
+    CASE
+        WHEN market_cap IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            market_cap
+        END AS market_cap,
+    CASE
+        WHEN trailing_pe IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            trailing_pe
+        END AS trailing_pe,
+    CASE
+        WHEN forward_pe IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            forward_pe
+        END AS forward_pe,
+    CASE
+        WHEN ev_ebitda_ratio IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            ev_ebitda_ratio
+        END AS ev_ebitda_ratio,
+    CASE
+        WHEN magic_formula_score IN ('Infinity'::Float, -'Infinity'::Float) THEN
+            NULL
+        ELSE
+            magic_formula_score
+        END AS magic_formula_score
 FROM
     piotroski_score AS a
 FULL JOIN

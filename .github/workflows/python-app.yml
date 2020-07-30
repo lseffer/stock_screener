@@ -1,0 +1,15 @@
+name: Running Python tests
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the containers
+      run: make run
+    - name: Run tests
+      run: make tests

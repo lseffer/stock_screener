@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/lseffer/stock_screener.svg?style=svg)](https://circleci.com/gh/lseffer/stock_screener)
+![Running Python tests](https://github.com/lseffer/stock_screener/workflows/Running%20Python%20tests/badge.svg)
 
 # Stock screener
 For stocks listed on Nasdaq OMX Nordic.

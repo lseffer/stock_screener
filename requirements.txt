@@ -16,7 +16,7 @@ ipython-genutils==0.2.0
 itsdangerous==1.1.0
 Jinja2==2.10.1
 jsonschema==3.0.1
-lxml==4.3.3
+lxml==4.6.5
 Mako==1.0.9
 MarkupSafe==1.1.1
 mypy==0.701

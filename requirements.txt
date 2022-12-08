@@ -1,7 +1,7 @@
 alembic==1.0.9
 attrs==19.1.0
 beautifulsoup4==4.7.1
-certifi==2019.3.9
+certifi==2022.12.7
 chardet==3.0.4
 Click==7.0
 decorator==4.4.0

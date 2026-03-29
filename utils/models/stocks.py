@@ -1,7 +1,7 @@
 from utils.models.base import Base
 from sqlalchemy import Column, String, DateTime
 from datetime import datetime
-from typing import List, Dict
+from typing import Dict
 
 
 class Stock(Base):
@@ -42,14 +42,13 @@ class Stock(Base):
             return ''
 
     @classmethod
-    def process_response(cls, response: List) -> Base:
+    def from_scraped_row(cls, values: list) -> 'Stock':
         record: Dict[str, str] = {
-            'isin': response[3],
-            'name': response[0],
-            'symbol': response[1],
-            'currency': response[2],
-            'sector': response[4]
+            'isin': values[3],
+            'name': values[0],
+            'symbol': values[1],
+            'currency': values[2],
+            'sector': values[4]
         }
         record['yahoo_ticker'] = cls.parse_yahoo_ticker_from_isin(record.copy())
-        result: Base = cls(**record)
-        return result
+        return cls(**record)

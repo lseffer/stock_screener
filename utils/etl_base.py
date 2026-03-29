@@ -4,6 +4,7 @@ from traceback import format_exc
 from typing import List
 from utils.models import Base
 
+
 class ETLBase(ABC):
 
     @staticmethod
@@ -22,7 +23,7 @@ class ETLBase(ABC):
                     session.commit()
                     logger.info('Chunked commit at %s records' % idx)
             session.commit()
-            logger.info('Chunked commit at %s records' % idx)
+            logger.info('Loaded %s records' % len(data))
             session.close()
         else:
             logger.info('No data to load')

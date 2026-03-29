@@ -101,3 +101,16 @@ html {
 .tablewrapper {
     box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
 }
+
+.generation-date {
+    color: #888;
+    font-size: 12px;
+    margin-left: 10px;
+    margin-right: auto;
+}
+
+a.actionbtn {
+    text-decoration: none;
+    text-align: center;
+    display: inline-block;
+}

@@ -1,8 +1,7 @@
 from utils.models.base import Base
 from sqlalchemy import Column, String, DateTime, Float, Date
-from datetime import datetime
-from utils import get_nested
-from typing import Dict
+from datetime import datetime, date
+from typing import Dict, Any
 
 
 class Price(Base):
@@ -22,19 +21,17 @@ class Price(Base):
     dw_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @classmethod
-    def process_response(cls, response: Dict, isin: str) -> Base:
-        record = {
-            'isin': isin,
-            'market_date': datetime.fromtimestamp(get_nested(response, 'price', 'regularMarketTime')).date(),
-            'price': get_nested(response, 'financialData', 'currentPrice', 'raw'),
-            'target_median_price': get_nested(response, 'financialData', 'targetMedianPrice', 'raw'),
-            'recommendation': get_nested(response, 'financialData', 'recommendationKey', 'raw'),
-            'number_of_analyst_opinions': get_nested(response, 'financialData', 'numberOfAnalystOpinions', 'raw'),
-            'ebitda': get_nested(response, 'financialData', 'ebitda', 'raw'),
-            'market_cap': get_nested(response, 'summaryDetail', 'marketCap', 'raw'),
-            'trailing_pe': get_nested(response, 'summaryDetail', 'trailingPE', 'raw'),
-            'forward_pe': get_nested(response, 'summaryDetail', 'forwardPE', 'raw'),
-            'ev_ebitda_ratio': get_nested(response, 'defaultKeyStatistics', 'enterpriseToEbitda', 'raw')
-        }
-        result: Base = cls(**record)
-        return result
+    def from_yfinance(cls, info: Dict[str, Any], isin: str) -> 'Price':
+        return cls(
+            isin=isin,
+            market_date=date.today(),
+            price=info.get('currentPrice'),
+            target_median_price=info.get('targetMedianPrice'),
+            recommendation=info.get('recommendationMean'),
+            number_of_analyst_opinions=info.get('numberOfAnalystOpinions'),
+            ebitda=info.get('ebitda'),
+            market_cap=info.get('marketCap'),
+            trailing_pe=info.get('trailingPE'),
+            forward_pe=info.get('forwardPE'),
+            ev_ebitda_ratio=info.get('enterpriseToEbitda'),
+        )

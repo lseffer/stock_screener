@@ -25,19 +25,29 @@ def init_database():
 
 
 def run_etl():
-    """Run all ETL jobs sequentially."""
+    """Run all ETL jobs sequentially. Each job is isolated so a failure in one
+    does not prevent the others from running or data from being persisted."""
     from utils.stock_info_etl import StockInfoETL
     from utils.stock_valuation_etl import StockValuationETL
     from utils.stock_financial_statements_etl import StockFinancialStatementsETL
 
-    logger.info('=== Running Stock Info ETL ===')
-    StockInfoETL.job()
+    etl_steps = [
+        ('Stock Info', StockInfoETL),
+        ('Stock Valuation', StockValuationETL),
+        ('Financial Statements', StockFinancialStatementsETL),
+    ]
 
-    logger.info('=== Running Stock Valuation ETL ===')
-    StockValuationETL.job()
+    failures = []
+    for name, etl_class in etl_steps:
+        logger.info('=== Running %s ETL ===' % name)
+        try:
+            etl_class.job()
+        except Exception as e:
+            logger.error('ETL step "%s" failed: %s' % (name, e))
+            failures.append(name)
 
-    logger.info('=== Running Financial Statements ETL ===')
-    StockFinancialStatementsETL.job()
+    if failures:
+        logger.warning('ETL completed with failures in: %s' % ', '.join(failures))
 
 
 def compute_scores():

@@ -52,3 +52,15 @@ class Stock(Base):
         }
         record['yahoo_ticker'] = cls.parse_yahoo_ticker_from_isin(record.copy())
         return cls(**record)
+
+    @classmethod
+    def from_yfinance_screener(cls, quote: Dict) -> 'Stock':
+        yahoo_ticker = quote.get('symbol', '')
+        return cls(
+            isin=yahoo_ticker,
+            name=quote.get('longName') or quote.get('shortName') or yahoo_ticker,
+            symbol=yahoo_ticker.split('.')[0] if yahoo_ticker else '',
+            currency=quote.get('currency', ''),
+            sector=quote.get('sector', ''),
+            yahoo_ticker=yahoo_ticker,
+        )

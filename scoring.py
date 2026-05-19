@@ -2,9 +2,14 @@
 Compute Piotroski F-Score and Magic Formula screening scores in Python,
 replacing the PostgreSQL materialized views.
 """
+import sqlite3
 import pandas as pd
 import math
-from utils.config import engine, logger
+from utils.config import DB_PATH, logger
+
+
+def _get_conn():
+    return sqlite3.connect(DB_PATH)
 
 
 def _safe_div(a, b):
@@ -28,9 +33,11 @@ def _sanitize_float(val):
 
 def load_financial_data() -> pd.DataFrame:
     """Load and join all financial tables into a single DataFrame."""
-    income = pd.read_sql('SELECT * FROM income_statements', engine)
-    balance = pd.read_sql('SELECT * FROM balance_sheet_statements', engine)
-    cashflow = pd.read_sql('SELECT * FROM cash_flow_statements', engine)
+    conn = _get_conn()
+    income = pd.read_sql('SELECT * FROM income_statements', conn)
+    balance = pd.read_sql('SELECT * FROM balance_sheet_statements', conn)
+    cashflow = pd.read_sql('SELECT * FROM cash_flow_statements', conn)
+    conn.close()
 
     # Merge on isin + report_date
     df = income.merge(cashflow, on=['isin', 'report_date'], how='outer', suffixes=('', '_cf'))
@@ -108,11 +115,13 @@ def compute_piotroski_scores(df: pd.DataFrame) -> pd.DataFrame:
 def compute_magic_formula_scores(df: pd.DataFrame) -> pd.DataFrame:
     """Compute Magic Formula and valuation metrics."""
     # Load latest prices per stock
+    conn = _get_conn()
     prices = pd.read_sql('''
         SELECT a.* FROM prices a
         INNER JOIN (SELECT isin, MAX(market_date) AS market_date FROM prices GROUP BY isin) b
         ON a.isin = b.isin AND a.market_date = b.market_date
-    ''', engine)
+    ''', conn)
+    conn.close()
 
     # Merge prices with financial data
     merged = df.merge(prices, on='isin', how='left', suffixes=('', '_price'))
@@ -198,7 +207,9 @@ def compute_screen_results() -> pd.DataFrame:
     scores = piotroski.merge(magic, on=['isin', 'report_date'], how='outer')
 
     # Join with stock info
-    stocks = pd.read_sql('SELECT isin, name, symbol, currency, sector, yahoo_ticker FROM stocks', engine)
+    conn = _get_conn()
+    stocks = pd.read_sql('SELECT isin, name, symbol, currency, sector, yahoo_ticker FROM stocks', conn)
+    conn.close()
     results = scores.merge(stocks, on='isin', how='left')
 
     # Rename for output

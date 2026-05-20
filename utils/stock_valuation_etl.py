@@ -36,5 +36,5 @@ class StockValuationETL(ETLBase):
                 logger.error('Failed to get price for %s: %s' % (yahoo_ticker, e))
                 failed += 1
                 continue
-            time.sleep(0.5)
+            time.sleep(0.1)
         logger.info('Price ETL complete: %s fetched, %s failed' % (fetched, failed))

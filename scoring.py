@@ -11,6 +11,18 @@ def _get_conn():
     return sqlite3.connect(DB_PATH)
 
 
+def _read_table(query: str, conn, table_name: str) -> pl.DataFrame:
+    """Read from SQLite with explicit Float64 overrides for REAL columns.
+    SQLite's dynamic typing stores round floats as integers, causing polars
+    schema inference to fail on mixed int/float columns."""
+    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+    schema_overrides = {
+        row[1]: pl.Float64 for row in cursor.fetchall()
+        if row[2].upper() in ('REAL', 'FLOAT')
+    }
+    return pl.read_database(query, conn, schema_overrides=schema_overrides)
+
+
 def _safe_div(a: pl.Expr, b: pl.Expr) -> pl.Expr:
     """Safe division returning null for zero/null divisors and infinite results."""
     result = a / b
@@ -20,9 +32,9 @@ def _safe_div(a: pl.Expr, b: pl.Expr) -> pl.Expr:
 def load_financial_data() -> pl.DataFrame:
     """Load and join all financial tables into a single DataFrame."""
     conn = _get_conn()
-    income = pl.read_database('SELECT * FROM income_statements', conn)
-    balance = pl.read_database('SELECT * FROM balance_sheet_statements', conn)
-    cashflow = pl.read_database('SELECT * FROM cash_flow_statements', conn)
+    income = _read_table('SELECT * FROM income_statements', conn, 'income_statements')
+    balance = _read_table('SELECT * FROM balance_sheet_statements', conn, 'balance_sheet_statements')
+    cashflow = _read_table('SELECT * FROM cash_flow_statements', conn, 'cash_flow_statements')
     conn.close()
 
     df = income.join(cashflow, on=['isin', 'report_date'], how='full', suffix='_cf', coalesce=True)
@@ -124,11 +136,11 @@ def compute_piotroski_scores(df: pl.DataFrame) -> pl.DataFrame:
 def compute_magic_formula_scores(df: pl.DataFrame) -> pl.DataFrame:
     """Compute Magic Formula and valuation metrics."""
     conn = _get_conn()
-    prices = pl.read_database('''
+    prices = _read_table('''
         SELECT a.* FROM prices a
         INNER JOIN (SELECT isin, MAX(market_date) AS market_date FROM prices GROUP BY isin) b
         ON a.isin = b.isin AND a.market_date = b.market_date
-    ''', conn)
+    ''', conn, 'prices')
     conn.close()
 
     merged = df.join(prices, on='isin', how='left', suffix='_price')
@@ -239,7 +251,7 @@ def compute_screen_results() -> pl.DataFrame:
     scores = piotroski.join(magic, on=['isin', 'report_date'], how='full', coalesce=True)
 
     conn = _get_conn()
-    stocks = pl.read_database('SELECT isin, name, symbol, currency, sector, yahoo_ticker FROM stocks', conn)
+    stocks = _read_table('SELECT isin, name, symbol, currency, sector, yahoo_ticker FROM stocks', conn, 'stocks')
     conn.close()
     results = scores.join(stocks, on='isin', how='left')
 

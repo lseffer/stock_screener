@@ -13,12 +13,15 @@ import { Toolbar } from './components/Toolbar';
 import { StockTable } from './components/StockTable';
 import { StockCards } from './components/StockCards';
 import { ColumnPicker } from './components/ColumnPicker';
+import { TopPicks } from './components/TopPicks';
 import { useDebounced, useMediaQuery } from './hooks';
 import { downloadCsv } from './csv';
+import { computeTopPicks, unionPicks } from './topPicks';
 
 const MOBILE_QUERY = '(max-width: 768px)';
 
 const PRESET_SORT: Record<PresetId, SortingState> = {
+  top_picks: [{ id: 'magic_formula_score', desc: true }],
   overview: [{ id: 'magic_formula_score', desc: true }],
   piotroski: [{ id: 'p_score', desc: true }],
   magic: [{ id: 'magic_formula_score', desc: true }],
@@ -27,6 +30,7 @@ const PRESET_SORT: Record<PresetId, SortingState> = {
 };
 
 const PRIMARY_METRIC: Record<PresetId, { key: keyof Stock; label: string; type: 'pct' | 'num' | 'score' }> = {
+  top_picks: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
   overview: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
   piotroski: { key: 'p_score', label: 'Piotroski', type: 'score' },
   magic: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
@@ -112,20 +116,27 @@ export function App() {
     [table, sorting, filteredRows],
   );
 
+  const topPickRows = useMemo(
+    () => (preset === 'top_picks' ? unionPicks(computeTopPicks(filteredRows)) : []),
+    [preset, filteredRows],
+  );
+
+  const displayRows = preset === 'top_picks' ? topPickRows : sortedRows;
+
   const handlePreset = (p: PresetId) => {
     setPreset(p);
     setSorting(PRESET_SORT[p]);
     setColumnVisibility(visibilityForPreset(p));
   };
 
-  const downloadAll = () => downloadCsv(sortedRows);
+  const downloadAll = () => downloadCsv(displayRows);
 
   return (
     <div className="app-root">
       <Toolbar
         generatedAt={payload?.generated_at || ''}
         totalRows={rows.length}
-        visibleRows={sortedRows.length}
+        visibleRows={displayRows.length}
         search={search}
         onSearch={setSearch}
         preset={preset}
@@ -149,7 +160,9 @@ export function App() {
         {!loadError && !payload && (
           <div className="loading">Loading screening results…</div>
         )}
+        {payload && preset === 'top_picks' && <TopPicks rows={filteredRows} />}
         {payload &&
+          preset !== 'top_picks' &&
           (isMobile ? (
             <StockCards rows={sortedRows} primaryMetric={PRIMARY_METRIC[preset]} />
           ) : (
@@ -159,7 +172,7 @@ export function App() {
 
       <footer className="site-footer">
         <span>
-          {presets[preset].label} · {sortedRows.length.toLocaleString()} stocks
+          {presets[preset].label} · {displayRows.length.toLocaleString()} stocks
         </span>
         <a href="https://github.com/lseffer/stock_screener" target="_blank" rel="noreferrer">
           Source on GitHub ↗

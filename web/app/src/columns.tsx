@@ -201,6 +201,19 @@ export const columns = [
 export const ALL_COLUMN_IDS = columns.map((c) => c.id as string);
 
 export const presets: Record<PresetId, { label: string; visible: string[] }> = {
+  top_picks: {
+    label: 'Top Picks',
+    visible: [
+      'company_name',
+      'sector',
+      'p_score',
+      'magic_formula_score',
+      'roic',
+      'ev_ebitda_ratio',
+      'price',
+      'market_cap',
+    ],
+  },
   overview: {
     label: 'Overview',
     visible: [

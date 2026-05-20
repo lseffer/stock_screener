@@ -31,4 +31,4 @@ export interface DataPayload {
   rows: Stock[];
 }
 
-export type PresetId = 'overview' | 'piotroski' | 'magic' | 'value' | 'all';
+export type PresetId = 'top_picks' | 'overview' | 'piotroski' | 'magic' | 'value' | 'all';

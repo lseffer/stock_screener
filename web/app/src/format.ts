@@ -48,3 +48,15 @@ export function fmtText(v: string | null | undefined): string {
   if (v === null || v === undefined || v === '') return '–';
   return v;
 }
+
+const eurCompact = new Intl.NumberFormat('en-IE', {
+  notation: 'compact',
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 1,
+});
+
+export function fmtEUR(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '–';
+  return eurCompact.format(v);
+}

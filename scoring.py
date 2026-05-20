@@ -5,6 +5,7 @@ replacing the PostgreSQL materialized views.
 import sqlite3
 import polars as pl
 from utils.config import DB_PATH, get_logger
+from utils.fx import EUR_RATES
 
 logger = get_logger('scoring')
 
@@ -273,14 +274,23 @@ def compute_screen_results() -> pl.DataFrame:
             for c in float_cols
         ])
 
+    results = _add_market_cap_eur(results)
+    results = _add_cap_tier(results)
+    results = _add_shareholder_yield_total(results)
+    results = _add_percentile_ranks(results)
+
     output_cols = [
         'isin', 'company_name', 'symbol', 'currency', 'sector', 'yahoo_ticker',
         'report_date', 'market_date', 'p_score',
         'roic', 'ev_ebitda_ratio_inv', 'shareholder_yield_stock',
-        'shareholder_yield_dividends', 'price_to_sales', 'price_to_cash_flow',
+        'shareholder_yield_dividends', 'shareholder_yield_total',
+        'price_to_sales', 'price_to_cash_flow',
         'ncav_ratio', 'price', 'target_median_price',
         'number_of_analyst_opinions', 'ebitda', 'market_cap',
-        'trailing_pe', 'forward_pe', 'ev_ebitda_ratio', 'magic_formula_score'
+        'market_cap_eur', 'cap_tier',
+        'trailing_pe', 'forward_pe', 'ev_ebitda_ratio', 'magic_formula_score',
+        'magic_formula_score_percentile', 'roic_percentile',
+        'shareholder_yield_percentile',
     ]
     existing_output_cols = [c for c in output_cols if c in results.columns]
     results = results.select(existing_output_cols)
@@ -290,3 +300,79 @@ def compute_screen_results() -> pl.DataFrame:
         len(results), results['isin'].n_unique(),
     )
     return results
+
+
+def _add_market_cap_eur(df: pl.DataFrame) -> pl.DataFrame:
+    """Add ``market_cap_eur`` by multiplying ``market_cap`` by the FX rate for the row's currency."""
+    if 'market_cap' not in df.columns or 'currency' not in df.columns:
+        return df
+    return df.with_columns(
+        (pl.col('market_cap') * pl.col('currency').str.to_uppercase().replace_strict(
+            EUR_RATES, default=None, return_dtype=pl.Float64
+        )).alias('market_cap_eur')
+    )
+
+
+# Nordic-scaled cap-tier thresholds, in EUR.
+_CAP_TIER_LARGE = 5_000_000_000
+_CAP_TIER_MID = 1_000_000_000
+_CAP_TIER_SMALL = 150_000_000
+
+
+def _add_cap_tier(df: pl.DataFrame) -> pl.DataFrame:
+    if 'market_cap_eur' not in df.columns:
+        return df
+    return df.with_columns(
+        pl.when(pl.col('market_cap_eur').is_null()).then(None)
+        .when(pl.col('market_cap_eur') >= _CAP_TIER_LARGE).then(pl.lit('large'))
+        .when(pl.col('market_cap_eur') >= _CAP_TIER_MID).then(pl.lit('mid'))
+        .when(pl.col('market_cap_eur') >= _CAP_TIER_SMALL).then(pl.lit('small'))
+        .otherwise(pl.lit('micro'))
+        .alias('cap_tier')
+    )
+
+
+def _add_shareholder_yield_total(df: pl.DataFrame) -> pl.DataFrame:
+    """Combined shareholder yield = buyback yield + dividend yield. Null when both sources are null."""
+    if 'shareholder_yield_stock' not in df.columns or 'shareholder_yield_dividends' not in df.columns:
+        return df
+    return df.with_columns(
+        pl.when(
+            pl.col('shareholder_yield_stock').is_null()
+            & pl.col('shareholder_yield_dividends').is_null()
+        )
+        .then(None)
+        .otherwise(
+            pl.col('shareholder_yield_stock').fill_null(0)
+            + pl.col('shareholder_yield_dividends').fill_null(0)
+        )
+        .alias('shareholder_yield_total')
+    )
+
+
+def _percentile_expr(col: str) -> pl.Expr:
+    """Ascending percentile (0-100) where higher value = higher percentile.
+
+    Nulls stay null. Ties get the average rank. Result is divided by the
+    count of non-null values so the top value sits at ~100.
+    """
+    non_null_count = pl.col(col).is_not_null().sum()
+    ranks = pl.col(col).rank(method='average')
+    return (
+        pl.when(pl.col(col).is_null())
+        .then(None)
+        .otherwise((ranks / non_null_count) * 100.0)
+        .alias(f'{col}_percentile')
+    )
+
+
+def _add_percentile_ranks(df: pl.DataFrame) -> pl.DataFrame:
+    exprs = []
+    for col in ('magic_formula_score', 'roic', 'shareholder_yield_total'):
+        if col in df.columns:
+            exprs.append(_percentile_expr(col))
+    # shareholder_yield_total_percentile -> shareholder_yield_percentile for brevity
+    df = df.with_columns(exprs) if exprs else df
+    if 'shareholder_yield_total_percentile' in df.columns:
+        df = df.rename({'shareholder_yield_total_percentile': 'shareholder_yield_percentile'})
+    return df

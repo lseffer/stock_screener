@@ -1,7 +1,39 @@
 import { useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Stock } from '../types';
-import { fmtCompact, fmtDecimal, fmtPercent, fmtPrice, fmtText } from '../format';
+import { fmtCompact, fmtDecimal, fmtEUR, fmtPercent, fmtPrice, fmtText } from '../format';
+
+function rankTone(p: number): string {
+  if (p >= 80) return 'top';
+  if (p >= 60) return 'high';
+  if (p >= 40) return 'mid';
+  if (p >= 20) return 'low';
+  return 'bottom';
+}
+
+function StatWithRank({
+  label,
+  value,
+  percentile,
+}: {
+  label: string;
+  value: string;
+  percentile: number | null | undefined;
+}) {
+  return (
+    <div className="stat">
+      <span className="stat-label">{label}</span>
+      <span className="stat-value">
+        {value}
+        {percentile !== null && percentile !== undefined && !Number.isNaN(percentile) && (
+          <span className={`rank-pill rank-${rankTone(percentile)} stat-rank`}>
+            p{Math.round(percentile)}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
 
 interface StockCardsProps {
   rows: Stock[];
@@ -105,21 +137,33 @@ export function StockCards({ rows, primaryMetric }: StockCardsProps) {
 
                 <div className="card-stats">
                   <Stat label="Price" value={fmtPrice(stock.price, stock.currency)} />
-                  <Stat label="ROIC" value={fmtPercent(stock.roic)} />
+                  <StatWithRank
+                    label="ROIC"
+                    value={fmtPercent(stock.roic)}
+                    percentile={stock.roic_percentile}
+                  />
                   <Stat label="EV/EBITDA" value={fmtDecimal(stock.ev_ebitda_ratio)} />
-                  <Stat label="Mkt Cap" value={fmtCompact(stock.market_cap)} />
+                  <Stat label="Mkt Cap" value={fmtEUR(stock.market_cap_eur)} />
                 </div>
 
                 {isOpen && (
                   <div className="card-detail">
                     <div className="card-stats">
-                      <Stat label="Magic Formula" value={fmtDecimal(stock.magic_formula_score)} />
+                      <StatWithRank
+                        label="Magic Formula"
+                        value={fmtDecimal(stock.magic_formula_score)}
+                        percentile={stock.magic_formula_score_percentile}
+                      />
                       <Stat label="P/E (TTM)" value={fmtDecimal(stock.trailing_pe)} />
                       <Stat label="P/E (fwd)" value={fmtDecimal(stock.forward_pe)} />
                       <Stat label="P/Sales" value={fmtDecimal(stock.price_to_sales)} />
                       <Stat label="P/CF" value={fmtDecimal(stock.price_to_cash_flow)} />
                       <Stat label="NCAV" value={fmtDecimal(stock.ncav_ratio)} />
-                      <Stat label="SH Yield (stock)" value={fmtPercent(stock.shareholder_yield_stock)} />
+                      <StatWithRank
+                        label="SH Yield (total)"
+                        value={fmtPercent(stock.shareholder_yield_total)}
+                        percentile={stock.shareholder_yield_percentile}
+                      />
                       <Stat label="Div Yield" value={fmtPercent(stock.shareholder_yield_dividends)} />
                       <Stat label="EBITDA" value={fmtCompact(stock.ebitda)} />
                       <Stat label="Target" value={fmtPrice(stock.target_median_price, stock.currency)} />

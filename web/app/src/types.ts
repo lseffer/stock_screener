@@ -1,3 +1,5 @@
+export type CapTier = 'large' | 'mid' | 'small' | 'micro';
+
 export interface Stock {
   isin: string;
   company_name: string | null;
@@ -12,6 +14,7 @@ export interface Stock {
   ev_ebitda_ratio_inv: number | null;
   shareholder_yield_stock: number | null;
   shareholder_yield_dividends: number | null;
+  shareholder_yield_total: number | null;
   price_to_sales: number | null;
   price_to_cash_flow: number | null;
   ncav_ratio: number | null;
@@ -20,10 +23,15 @@ export interface Stock {
   number_of_analyst_opinions: number | null;
   ebitda: number | null;
   market_cap: number | null;
+  market_cap_eur: number | null;
+  cap_tier: CapTier | null;
   trailing_pe: number | null;
   forward_pe: number | null;
   ev_ebitda_ratio: number | null;
   magic_formula_score: number | null;
+  magic_formula_score_percentile: number | null;
+  roic_percentile: number | null;
+  shareholder_yield_percentile: number | null;
 }
 
 export interface DataPayload {

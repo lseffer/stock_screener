@@ -215,7 +215,8 @@ body {
   color: var(--text-muted);
 }
 
-.filter-field select {
+.filter-field select,
+.filter-field input[type="number"] {
   appearance: none;
   background: var(--surface);
   color: var(--text);
@@ -224,6 +225,88 @@ body {
   padding: 8px 10px;
   font-size: 13px;
 }
+.filter-field input[type="number"]::-webkit-outer-spin-button,
+.filter-field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.filter-field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.filter-field-wide {
+  grid-column: 1 / -1;
+}
+
+.filter-field-reset {
+  align-self: end;
+}
+
+.cap-tier-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Rank & cap-tier pills ---------- */
+
+.value-with-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.value-with-rank-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.rank-top    { background: var(--pill-good-bg); color: var(--pill-good-fg); border-color: transparent; }
+.rank-high   { background: var(--pill-good-bg); color: var(--pill-good-fg); border-color: transparent; opacity: 0.75; }
+.rank-mid    { background: var(--surface-2);    color: var(--text-muted); }
+.rank-low    { background: var(--pill-bad-bg);  color: var(--pill-bad-fg); border-color: transparent; opacity: 0.75; }
+.rank-bottom { background: var(--pill-bad-bg);  color: var(--pill-bad-fg); border-color: transparent; }
+
+.cap-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cap-tier-large { background: rgba(46, 109, 246, 0.18); color: var(--primary); }
+.cap-tier-mid   { background: var(--pill-good-bg);      color: var(--pill-good-fg); }
+.cap-tier-small { background: var(--pill-mid-bg);       color: var(--pill-mid-fg); }
+.cap-tier-micro { background: var(--surface-2);         color: var(--text-muted); }
+
+.stat-rank { font-size: 9px; margin-left: 4px; vertical-align: 1px; }
 
 /* ---------- Content area ---------- */
 

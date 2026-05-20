@@ -1,12 +1,60 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { Stock, PresetId } from './types';
-import { fmtCompact, fmtDecimal, fmtPercent, fmtPrice, fmtText } from './format';
+import type { Stock, PresetId, CapTier } from './types';
+import { fmtCompact, fmtDecimal, fmtEUR, fmtPercent, fmtPrice, fmtText } from './format';
 
 const ch = createColumnHelper<Stock>();
 
 const num = (key: keyof Stock) => (row: Stock) => {
   const v = row[key];
   return typeof v === 'number' ? v : null;
+};
+
+function rankTone(percentile: number): 'top' | 'high' | 'mid' | 'low' | 'bottom' {
+  if (percentile >= 80) return 'top';
+  if (percentile >= 60) return 'high';
+  if (percentile >= 40) return 'mid';
+  if (percentile >= 20) return 'low';
+  return 'bottom';
+}
+
+function RankPill({ percentile }: { percentile: number | null | undefined }) {
+  if (percentile === null || percentile === undefined || Number.isNaN(percentile)) return null;
+  const fromTop = 100 - percentile;
+  // "top 8%" for the head, "bottom 8%" for the tail, neutral middle.
+  const label =
+    percentile >= 80
+      ? `top ${Math.max(1, Math.round(fromTop))}%`
+      : percentile <= 20
+      ? `bot ${Math.max(1, Math.round(percentile))}%`
+      : `p${Math.round(percentile)}`;
+  return <span className={`rank-pill rank-${rankTone(percentile)}`}>{label}</span>;
+}
+
+function ValueWithRank({
+  value,
+  formatted,
+  percentile,
+}: {
+  value: number | null | undefined;
+  formatted: string;
+  percentile: number | null | undefined;
+}) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return <span className="muted">–</span>;
+  }
+  return (
+    <span className="value-with-rank">
+      <span className="value-with-rank-num">{formatted}</span>
+      <RankPill percentile={percentile ?? null} />
+    </span>
+  );
+}
+
+const CAP_TIER_LABEL: Record<CapTier, string> = {
+  large: 'Large',
+  mid: 'Mid',
+  small: 'Small',
+  micro: 'Micro',
 };
 
 export const columns = [
@@ -59,18 +107,30 @@ export const columns = [
   ch.accessor(num('magic_formula_score'), {
     id: 'magic_formula_score',
     header: 'Magic Formula',
-    cell: (info) => fmtDecimal(info.getValue()),
+    cell: (info) => (
+      <ValueWithRank
+        value={info.getValue()}
+        formatted={fmtDecimal(info.getValue())}
+        percentile={info.row.original.magic_formula_score_percentile}
+      />
+    ),
     sortingFn: 'basic',
     sortUndefined: 'last',
-    size: 130,
+    size: 180,
   }),
   ch.accessor(num('roic'), {
     id: 'roic',
     header: 'ROIC',
-    cell: (info) => fmtPercent(info.getValue()),
+    cell: (info) => (
+      <ValueWithRank
+        value={info.getValue()}
+        formatted={fmtPercent(info.getValue())}
+        percentile={info.row.original.roic_percentile}
+      />
+    ),
     sortingFn: 'basic',
     sortUndefined: 'last',
-    size: 100,
+    size: 150,
   }),
   ch.accessor(num('ev_ebitda_ratio'), {
     id: 'ev_ebitda_ratio',
@@ -120,6 +180,20 @@ export const columns = [
     sortUndefined: 'last',
     size: 90,
   }),
+  ch.accessor(num('shareholder_yield_total'), {
+    id: 'shareholder_yield_total',
+    header: 'SH Yield (total)',
+    cell: (info) => (
+      <ValueWithRank
+        value={info.getValue()}
+        formatted={fmtPercent(info.getValue())}
+        percentile={info.row.original.shareholder_yield_percentile}
+      />
+    ),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 170,
+  }),
   ch.accessor(num('shareholder_yield_stock'), {
     id: 'shareholder_yield_stock',
     header: 'SH Yield (stock)',
@@ -160,13 +234,37 @@ export const columns = [
     sortUndefined: 'last',
     size: 110,
   }),
+  ch.accessor(num('market_cap_eur'), {
+    id: 'market_cap_eur',
+    header: 'Market Cap (€)',
+    cell: (info) => fmtEUR(info.getValue()),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 130,
+  }),
+  ch.accessor('cap_tier', {
+    id: 'cap_tier',
+    header: 'Cap Tier',
+    cell: (info) => {
+      const v = info.getValue() as CapTier | null;
+      if (!v) return <span className="muted">–</span>;
+      return <span className={`cap-tier-pill cap-tier-${v}`}>{CAP_TIER_LABEL[v]}</span>;
+    },
+    sortingFn: (a, b) => {
+      const order: Record<string, number> = { large: 4, mid: 3, small: 2, micro: 1 };
+      const av = (a.original.cap_tier as string | null) ?? '';
+      const bv = (b.original.cap_tier as string | null) ?? '';
+      return (order[av] ?? 0) - (order[bv] ?? 0);
+    },
+    size: 100,
+  }),
   ch.accessor(num('market_cap'), {
     id: 'market_cap',
-    header: 'Market Cap',
+    header: 'Market Cap (native)',
     cell: (info) => fmtCompact(info.getValue()),
     sortingFn: 'basic',
     sortUndefined: 'last',
-    size: 120,
+    size: 140,
   }),
   ch.accessor(num('ebitda'), {
     id: 'ebitda',
@@ -211,7 +309,8 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'roic',
       'ev_ebitda_ratio',
       'price',
-      'market_cap',
+      'market_cap_eur',
+      'cap_tier',
     ],
   },
   overview: {
@@ -224,7 +323,8 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'roic',
       'ev_ebitda_ratio',
       'price',
-      'market_cap',
+      'market_cap_eur',
+      'cap_tier',
     ],
   },
   piotroski: {
@@ -237,6 +337,7 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'trailing_pe',
       'forward_pe',
       'price',
+      'cap_tier',
     ],
   },
   magic: {
@@ -248,7 +349,8 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'roic',
       'ev_ebitda_ratio',
       'ev_ebitda_ratio_inv',
-      'market_cap',
+      'market_cap_eur',
+      'cap_tier',
     ],
   },
   value: {
@@ -259,9 +361,9 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'price_to_sales',
       'price_to_cash_flow',
       'ncav_ratio',
-      'shareholder_yield_stock',
-      'shareholder_yield_dividends',
+      'shareholder_yield_total',
       'trailing_pe',
+      'cap_tier',
     ],
   },
   all: {

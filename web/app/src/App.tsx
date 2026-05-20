@@ -7,9 +7,9 @@ import {
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
-import type { DataPayload, PresetId, Stock } from './types';
+import type { CapTier, DataPayload, PresetId, Stock } from './types';
 import { columns, presets, visibilityForPreset } from './columns';
-import { Toolbar } from './components/Toolbar';
+import { Toolbar, type Filters, DEFAULT_FILTERS, activeFilterCount } from './components/Toolbar';
 import { StockTable } from './components/StockTable';
 import { StockCards } from './components/StockCards';
 import { ColumnPicker } from './components/ColumnPicker';
@@ -25,7 +25,7 @@ const PRESET_SORT: Record<PresetId, SortingState> = {
   overview: [{ id: 'magic_formula_score', desc: true }],
   piotroski: [{ id: 'p_score', desc: true }],
   magic: [{ id: 'magic_formula_score', desc: true }],
-  value: [{ id: 'shareholder_yield_stock', desc: true }],
+  value: [{ id: 'shareholder_yield_total', desc: true }],
   all: [{ id: 'magic_formula_score', desc: true }],
 };
 
@@ -34,9 +34,24 @@ const PRIMARY_METRIC: Record<PresetId, { key: keyof Stock; label: string; type: 
   overview: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
   piotroski: { key: 'p_score', label: 'Piotroski', type: 'score' },
   magic: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
-  value: { key: 'shareholder_yield_stock', label: 'SH Yield', type: 'pct' },
+  value: { key: 'shareholder_yield_total', label: 'SH Yield', type: 'pct' },
   all: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
 };
+
+function passesFilters(r: Stock, f: Filters): boolean {
+  if (f.capTiers.size > 0 && (!r.cap_tier || !f.capTiers.has(r.cap_tier as CapTier))) return false;
+  if (f.minPScore !== null && (r.p_score ?? -1) < f.minPScore) return false;
+  if (f.sector && r.sector !== f.sector) return false;
+  if (f.minMagicFormula !== null && (r.magic_formula_score ?? -Infinity) < f.minMagicFormula) return false;
+  if (f.minRoic !== null && (r.roic ?? -Infinity) < f.minRoic / 100) return false;
+  if (f.minShareholderYield !== null && (r.shareholder_yield_total ?? -Infinity) < f.minShareholderYield / 100) return false;
+  if (f.maxEvEbitda !== null && (r.ev_ebitda_ratio ?? Infinity) > f.maxEvEbitda) return false;
+  if (f.maxTrailingPe !== null && (r.trailing_pe ?? Infinity) > f.maxTrailingPe) return false;
+  if (f.maxPriceToSales !== null && (r.price_to_sales ?? Infinity) > f.maxPriceToSales) return false;
+  if (f.minNcavRatio !== null && (r.ncav_ratio ?? -Infinity) < f.minNcavRatio) return false;
+  if (f.minMarketCapEurM !== null && (r.market_cap_eur ?? -Infinity) < f.minMarketCapEurM * 1_000_000) return false;
+  return true;
+}
 
 export function App() {
   const isMobile = useMediaQuery(MOBILE_QUERY);
@@ -46,8 +61,8 @@ export function App() {
   const [preset, setPreset] = useState<PresetId>('overview');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search, 120);
-  const [minPScore, setMinPScore] = useState<number | null>(null);
-  const [sector, setSector] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const debouncedFilters = useDebounced(filters, 150);
   const [sorting, setSorting] = useState<SortingState>(PRESET_SORT.overview);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     visibilityForPreset('overview'),
@@ -89,15 +104,14 @@ export function App() {
   const filteredRows = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     return rows.filter((r) => {
-      if (minPScore !== null && (r.p_score ?? -1) < minPScore) return false;
-      if (sector && r.sector !== sector) return false;
+      if (!passesFilters(r, debouncedFilters)) return false;
       if (q) {
         const hay = `${r.company_name ?? ''} ${r.symbol ?? ''} ${r.sector ?? ''} ${r.isin}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [rows, debouncedSearch, minPScore, sector]);
+  }, [rows, debouncedSearch, debouncedFilters]);
 
   const table = useReactTable({
     data: filteredRows,
@@ -141,11 +155,10 @@ export function App() {
         onSearch={setSearch}
         preset={preset}
         onPreset={handlePreset}
-        minPScore={minPScore}
-        onMinPScore={setMinPScore}
-        sector={sector}
+        filters={filters}
+        onFilters={setFilters}
+        activeFilterCount={activeFilterCount(filters)}
         sectors={sectors}
-        onSector={setSector}
         onDownloadCsv={downloadAll}
         isMobile={isMobile}
         columnPicker={!isMobile ? <ColumnPicker table={table} /> : undefined}

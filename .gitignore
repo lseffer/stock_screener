@@ -15,6 +15,10 @@ stock_data/*
 _site/
 stocks.db
 
+# Frontend build output
+web/app/node_modules/
+web/app/dist/
+
 # C extensions
 *.so
 

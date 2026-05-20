@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 from datetime import date, datetime
 from pathlib import Path
 
@@ -18,6 +19,10 @@ import polars as pl
 
 from utils.config import DB_PATH, OUTPUT_DIR, engine, get_last_year, logger
 from utils.models import Base
+
+
+WEB_APP_DIR = Path(__file__).parent / 'web' / 'app'
+WEB_APP_DIST = WEB_APP_DIR / 'dist'
 
 
 def init_database():
@@ -91,72 +96,70 @@ def compute_scores():
     return records
 
 
+def build_web_app():
+    """Build the Vite/React frontend if a build hasn't been produced yet.
+
+    The CI workflow runs `npm ci && npm run build` before invoking this
+    script, so this fallback is mainly for local development. It is silently
+    skipped if Node/npm is unavailable and a prebuilt dist already exists.
+    """
+    index_html = WEB_APP_DIST / 'index.html'
+    if index_html.exists():
+        logger.info('Using prebuilt frontend at %s' % WEB_APP_DIST)
+        return
+
+    if not WEB_APP_DIR.exists():
+        raise FileNotFoundError(
+            'Frontend source directory %s is missing' % WEB_APP_DIR
+        )
+
+    npm = shutil.which('npm')
+    if npm is None:
+        raise RuntimeError(
+            'Frontend has not been built and npm is not available. '
+            'Run `npm ci && npm run build` inside %s and retry.' % WEB_APP_DIR
+        )
+
+    logger.info('Building frontend in %s' % WEB_APP_DIR)
+    if not (WEB_APP_DIR / 'node_modules').exists():
+        subprocess.run([npm, 'ci'], cwd=WEB_APP_DIR, check=True)
+    subprocess.run([npm, 'run', 'build'], cwd=WEB_APP_DIR, check=True)
+
+
 def generate_site(data):
     """Generate static website with embedded stock data."""
     output_dir = Path(OUTPUT_DIR)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy static assets
-    static_src = Path('web/static')
-    if static_src.exists():
-        for subdir in ['css', 'js', 'img']:
-            src = static_src / subdir
-            dst = output_dir / subdir
-            if src.exists():
-                if dst.exists():
-                    shutil.rmtree(dst)
-                shutil.copytree(src, dst)
+    build_web_app()
 
-    # Write data as JSON file
+    # Copy the Vite dist into the output dir
+    if not WEB_APP_DIST.exists():
+        raise FileNotFoundError(
+            'Expected built frontend at %s but it does not exist' % WEB_APP_DIST
+        )
+
+    for entry in WEB_APP_DIST.iterdir():
+        dst = output_dir / entry.name
+        if entry.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(entry, dst)
+        else:
+            shutil.copy2(entry, dst)
+
+    # Write data as a JSON envelope (rows + metadata)
+    generation_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+    payload = {'generated_at': generation_date, 'rows': data}
     data_path = output_dir / 'data.json'
     with open(data_path, 'w') as f:
-        json.dump(data, f)
+        json.dump(payload, f)
     logger.info('Wrote %s records to %s' % (len(data), data_path))
-
-    # Generate index.html
-    generation_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
-    html = generate_index_html(generation_date)
-    index_path = output_dir / 'index.html'
-    with open(index_path, 'w') as f:
-        f.write(html)
-    logger.info('Wrote %s' % index_path)
 
     # Copy SQLite database to output for download
     if os.path.exists(DB_PATH):
         shutil.copy2(DB_PATH, output_dir / 'stocks.db')
         logger.info('Copied database to %s' % (output_dir / 'stocks.db'))
-
-
-def generate_index_html(generation_date: str) -> str:
-    return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#23191C">
-    <title>Nordic Stock Screener</title>
-    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Open+Sans" />
-    <link href="css/index.css" rel="stylesheet">
-    <link href="css/tabulator_simple.min.css" rel="stylesheet">
-    <script type="text/javascript" src="js/tabulator.min.js"></script>
-    <script type="text/javascript" src="js/update_table.js"></script>
-</head>
-<body onload="loadData();">
-    <div class="main">
-        <div class="buttonribbon">
-            <h1>Nordic Stock Screener</h1>
-            <span class="generation-date">Updated: {generation_date}</span>
-            <button id="download_data_link" class="actionbtn">Download CSV</button>
-            <a href="stocks.db" class="actionbtn" download>Download DB</a>
-        </div>
-        <div class="tablecontainer">
-            <div class="tablewrapper">
-                <div id="example-table"></div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>'''
 
 
 def main():

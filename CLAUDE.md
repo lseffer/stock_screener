@@ -5,9 +5,10 @@
 - **Language**: Python 3.12, no type checker currently enforced
 - **Dependencies**: `yfinance`, `sqlalchemy`, `polars`, `pandas` (yfinance dep), `requests` (see `requirements.txt`)
 - **Database**: SQLite (`stocks.db`), created automatically on first run
-- **Entry point**: `python generate_site.py`
+- **Entry point**: `python generate_site.py` (auto-builds the frontend if `web/app/dist` is missing)
+- **Frontend**: React + TypeScript + TanStack Table (`web/app/`). Build with `npm ci && npm run build` inside `web/app/`.
 - **Tests**: `python -m unittest discover tests/ -v`
-- **Output**: `_site/` directory (static HTML + JSON + SQLite db)
+- **Output**: `_site/` directory (built frontend + JSON data + SQLite db)
 
 ## What this project does
 
@@ -32,8 +33,22 @@ utils/
     income_statements.py  Income statement data (with FIELD_MAP for yfinance label mapping)
     balance_sheet_statements.py
     cash_flow_statements.py
-web/static/               Source CSS, JS, images (copied to _site/ during generation)
-.github/workflows/screener.yml  Weekly GitHub Actions pipeline
+web/app/                  Vite + React + TypeScript frontend (TanStack Table + Virtual)
+  src/
+    App.tsx               Top-level component, owns filter/sort/preset state, fetches data.json
+    columns.tsx           Column definitions, presets (Overview/Piotroski/Magic Formula/Value/All)
+    components/
+      StockTable.tsx      Desktop virtualized table (TanStack React Table + React Virtual)
+      StockCards.tsx      Mobile virtualized card list with expand-for-details
+      Toolbar.tsx         Search, preset chips, filter panel, CSV export button
+      ColumnPicker.tsx    Desktop column visibility toggle (inside filter panel)
+    csv.ts                Client-side CSV export of the currently-sorted/filtered rows
+    format.ts             Intl-based number/currency/percent formatters
+    hooks.ts              useMediaQuery, useDebounced
+    styles.css            Single CSS file with light/dark theme via prefers-color-scheme
+  public/favicon.png      Favicon copied verbatim into dist/
+  dist/                   Build output (gitignored). Copied into _site/ by generate_site.py.
+.github/workflows/screener.yml  Weekly GitHub Actions pipeline (Python + Node build)
 ```
 
 ## Key design decisions
@@ -43,14 +58,21 @@ web/static/               Source CSS, JS, images (copied to _site/ during genera
 - **Robustness**: Each ETL phase is wrapped in try/except. Prices commit per-stock. Financial statements commit per-stock batch. Partial failures still produce output. Workflow uses `if: always()` on upload steps.
 - **Scoring in polars**: Piotroski and Magic Formula scores are computed in polars using expression-based column operations, replacing the old pandas `apply()` approach. See `scoring.py`. Pandas is still a dependency because yfinance returns pandas DataFrames in the ETL layer.
 - **yfinance field mapping**: Financial statement models have a `FIELD_MAP` dict that maps yfinance DataFrame row labels to our column names. yfinance labels vary across stocks/versions, so maps include multiple aliases.
+- **Frontend data contract**: `_site/data.json` is `{ generated_at: string, rows: Stock[] }`. Adding a metric means adding it to the polars output in `scoring.py`, the `Stock` TypeScript interface in `web/app/src/types.ts`, and (usually) a new column entry in `web/app/src/columns.tsx`.
 
 ## Running locally
 
 ```bash
 pip install -r requirements.txt
-python generate_site.py              # full pipeline
-python generate_site.py --skip-etl   # regenerate site from existing DB
-python generate_site.py --etl-only   # just populate DB
+(cd web/app && npm ci && npm run build)   # one-time / when frontend changes
+python generate_site.py                   # full pipeline
+python generate_site.py --skip-etl        # regenerate site from existing DB
+python generate_site.py --etl-only        # just populate DB
+
+# Frontend dev with live reload — run `python generate_site.py --skip-etl`
+# first to produce _site/data.json, then copy it into web/app/public/data.json
+# and start the dev server:
+cp _site/data.json web/app/public/data.json && (cd web/app && npm run dev)
 ```
 
 Environment variables (all optional):

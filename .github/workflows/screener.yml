@@ -30,6 +30,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/app/package-lock.json
+
+      - name: Build frontend
+        working-directory: web/app
+        run: |
+          npm ci
+          npm run build
+
       - name: Restore previous database
         uses: dawidd6/action-download-artifact@v6
         with:

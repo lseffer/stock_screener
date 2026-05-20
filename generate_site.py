@@ -35,8 +35,8 @@ def run_etl():
 
     etl_steps = [
         ('Stock Info', StockInfoETL),
-        ('Stock Valuation', StockValuationETL),
         ('Financial Statements', StockFinancialStatementsETL),
+        ('Stock Valuation', StockValuationETL),
     ]
 
     failures = []

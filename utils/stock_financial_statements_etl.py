@@ -69,6 +69,6 @@ class StockFinancialStatementsETL(ETLBase):
                 logger.error('Failed to get financials for %s: %s' % (yahoo_ticker, e))
                 failed += 1
                 continue
-            time.sleep(0.5)
+            time.sleep(0.1)
 
         logger.info('Financials ETL complete: %s stocks fetched, %s failed' % (fetched, failed))

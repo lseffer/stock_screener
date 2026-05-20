@@ -35,6 +35,7 @@ jobs:
         with:
           name: stocks-database
           workflow: screener.yml
+          workflow_conclusion: ''
           search_artifacts: true
           if_no_artifact_found: warn
         continue-on-error: true

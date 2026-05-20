@@ -1,8 +1,8 @@
 from .base import Base
 from sqlalchemy import Column, String, DateTime, Float, Date
 from datetime import datetime
-from typing import Dict
-from utils import get_nested
+from typing import Dict, Any
+import pandas as pd
 
 
 class CashFlowStatement(Base):
@@ -28,30 +28,47 @@ class CashFlowStatement(Base):
     dw_created = Column(DateTime, default=datetime.utcnow)
     dw_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    FIELD_MAP = {
+        'Net Income': 'net_income',
+        'Net Income From Continuing Operations': 'net_income',
+        'Depreciation And Amortization': 'change_to_netincome',
+        'Change To Netincome': 'change_to_netincome',
+        'Change In Account Receivable': 'change_to_account_receivables',
+        'Change To Account Receivables': 'change_to_account_receivables',
+        'Changes In Account Receivables': 'change_to_account_receivables',
+        'Change To Liabilities': 'change_to_liabilities',
+        'Change In Other Working Capital': 'change_to_liabilities',
+        'Operating Cash Flow': 'total_cash_from_operating_activities',
+        'Total Cash From Operating Activities': 'total_cash_from_operating_activities',
+        'Capital Expenditure': 'capital_expenditures',
+        'Capital Expenditures': 'capital_expenditures',
+        'Other Cash Flows From Investing Activities': 'other_cashflows_from_investing_activities',
+        'Investing Cash Flow': 'total_cashflows_from_investing_activities',
+        'Total Cashflows From Investing Activities': 'total_cashflows_from_investing_activities',
+        'Common Stock Dividend Paid': 'dividends_paid',
+        'Dividends Paid': 'dividends_paid',
+        'Net Borrowings': 'net_borrowings',
+        'Net Issuance Payments Of Debt': 'net_borrowings',
+        'Other Cash Flows From Financing Activities': 'other_cashflows_from_financing_activities',
+        'Financing Cash Flow': 'total_cash_from_financing_activities',
+        'Total Cash From Financing Activities': 'total_cash_from_financing_activities',
+        'Effect Of Exchange Rate': 'effect_of_exchange_rate',
+        'Effect Of Exchange Rate Changes': 'effect_of_exchange_rate',
+        'Changes In Cash': 'change_in_cash',
+        'Change In Cash': 'change_in_cash',
+        'Change In Cash Supplemental As Reported': 'change_in_cash',
+        'Repurchase Of Capital Stock': 'repurchase_of_stock',
+        'Repurchase Of Stock': 'repurchase_of_stock',
+        'Common Stock Issuance': 'issuance_of_stock',
+        'Issuance Of Stock': 'issuance_of_stock',
+        'Net Common Stock Issuance': 'issuance_of_stock',
+    }
+
     @classmethod
-    def process_response(cls, response: Dict, isin: str) -> Base:
-        record = {
-            'isin': isin,
-            'report_date': datetime.fromtimestamp(get_nested(response, 'endDate', 'raw')).date(),
-            'net_income': get_nested(response, 'netIncome', 'raw'),
-            'change_to_netincome': get_nested(response, 'changeToNetincome', 'raw'),
-            'change_to_account_receivables': get_nested(response, 'changeToAccountReceivables', 'raw'),
-            'change_to_liabilities': get_nested(response, 'changeToLiabilities', 'raw'),
-            'total_cash_from_operating_activities': get_nested(response, 'totalCashFromOperatingActivities', 'raw'),
-            'capital_expenditures': get_nested(response, 'capitalExpenditures', 'raw'),
-            'other_cashflows_from_investing_activities': get_nested(response,
-                'otherCashflowsFromInvestingActivities', 'raw'),
-            'total_cashflows_from_investing_activities': get_nested(response,
-                'totalCashflowsFromInvestingActivities', 'raw'),
-            'dividends_paid': get_nested(response, 'dividendsPaid', 'raw'),
-            'net_borrowings': get_nested(response, 'netBorrowings', 'raw'),
-            'other_cashflows_from_financing_activities': get_nested(response, 'otherCashflowsFromFinancingActivities',
-                'raw'),
-            'total_cash_from_financing_activities': get_nested(response, 'totalCashFromFinancingActivities', 'raw'),
-            'effect_of_exchange_rate': get_nested(response, 'effectOfExchangeRate', 'raw'),
-            'change_in_cash': get_nested(response, 'changeInCash', 'raw'),
-            'repurchase_of_stock': get_nested(response, 'repurchaseOfStock', 'raw'),
-            'issuance_of_stock': get_nested(response, 'issuanceOfStock', 'raw')
-        }
-        result: Base = cls(**record)
-        return result
+    def from_yfinance_column(cls, df: pd.DataFrame, col_date: Any, isin: str) -> 'CashFlowStatement':
+        series = df[col_date].dropna()
+        record: Dict[str, Any] = {'isin': isin, 'report_date': col_date.date() if hasattr(col_date, 'date') else col_date}
+        for yf_label, our_field in cls.FIELD_MAP.items():
+            if yf_label in series.index and our_field not in record:
+                record[our_field] = float(series[yf_label])
+        return cls(**record)

@@ -1,31 +1,40 @@
-from utils import fetch_yahoo_data
-from utils.queries import fetch_all_tickers_from_database
-from utils.models import Base, Price
+import yfinance as yf
+from utils.queries import fetch_all_tickers_from_database, fetch_tickers_needing_price_update
+from utils.models import Price
 from utils.config import logger
 from utils.etl_base import ETLBase
-from typing import List
-
-
-def create_database_records() -> List[Base]:
-    tickers = fetch_all_tickers_from_database()
-    data: List[Base] = []
-    for ticker_tuple in tickers:
-        if len(ticker_tuple) == 2:
-            try:
-                response = fetch_yahoo_data(ticker_tuple[1], 'summaryDetail,financialData,price,defaultKeyStatistics')
-                record = Price.process_response(response, ticker_tuple[0])
-            except Exception:
-                logger.error('Something went wrong getting ticker %s' % ticker_tuple[1])
-                continue
-            data.append(record)
-        else:
-            continue
-    return data
+import time
 
 
 class StockValuationETL(ETLBase):
 
     @staticmethod
     def job() -> None:
-        data = create_database_records()
-        ETLBase.load_data(data)
+        all_tickers = fetch_all_tickers_from_database()
+        stale_tickers = fetch_tickers_needing_price_update(max_age_days=5)
+        skipped = len(all_tickers) - len(stale_tickers)
+        logger.info('Skipping %s stocks with recent prices, fetching %s' % (skipped, len(stale_tickers)))
+
+        fetched = 0
+        failed = 0
+        for isin, yahoo_ticker in stale_tickers:
+            if not yahoo_ticker:
+                continue
+            try:
+                ticker = yf.Ticker(yahoo_ticker)
+                info = ticker.info
+                if not info or info.get('regularMarketPrice') is None and info.get('currentPrice') is None:
+                    logger.warning('No data for %s' % yahoo_ticker)
+                    failed += 1
+                    continue
+                record = Price.from_yfinance(info, isin)
+                if ETLBase.load_record(record):
+                    fetched += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                logger.error('Failed to get price for %s: %s' % (yahoo_ticker, e))
+                failed += 1
+                continue
+            time.sleep(0.5)
+        logger.info('Price ETL complete: %s fetched, %s failed' % (fetched, failed))

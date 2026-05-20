@@ -1,8 +1,8 @@
 from .base import Base
 from sqlalchemy import Column, String, DateTime, Float, Date
 from datetime import datetime
-from typing import Dict
-from utils import get_nested
+from typing import Dict, Any
+import pandas as pd
 
 
 class IncomeStatement(Base):
@@ -34,33 +34,42 @@ class IncomeStatement(Base):
     dw_created = Column(DateTime, default=datetime.utcnow)
     dw_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Mapping from yfinance row labels to our column names
+    FIELD_MAP = {
+        'Total Revenue': 'total_revenue',
+        'Cost Of Revenue': 'cost_of_revenue',
+        'Gross Profit': 'gross_profit',
+        'Research And Development': 'research_development',
+        'Research Development': 'research_development',
+        'Selling General And Administration': 'selling_general_administrative',
+        'Selling General Administrative': 'selling_general_administrative',
+        'Other Operating Expenses': 'other_operating_expenses',
+        'Total Operating Expenses': 'total_operating_expenses',
+        'Operating Income': 'operating_income',
+        'Total Other Income Expense Net': 'total_other_income_expense_net',
+        'Other Income Expense': 'total_other_income_expense_net',
+        'EBIT': 'ebit',
+        'Interest Expense': 'interest_expense',
+        'Pretax Income': 'income_before_tax',
+        'Income Before Tax': 'income_before_tax',
+        'Tax Provision': 'income_tax_expense',
+        'Income Tax Expense': 'income_tax_expense',
+        'Minority Interest': 'minority_interest',
+        'Net Income From Continuing Ops': 'net_income_from_continuing_ops',
+        'Net Income From Continuing Operations': 'net_income_from_continuing_ops',
+        'Net Income From Continuing Operation Net Minority Interest': 'net_income_from_continuing_ops',
+        'Discontinued Operations': 'discontinued_operations',
+        'Extraordinary Items': 'extraordinary_items',
+        'Net Income': 'net_income',
+        'Net Income Common Stockholders': 'net_income_applicable_to_common_shares',
+        'Net Income Applicable To Common Shares': 'net_income_applicable_to_common_shares',
+    }
+
     @classmethod
-    def process_response(cls, response: Dict, isin: str) -> Base:
-        record = {
-            'isin': isin,
-            'report_date': datetime.fromtimestamp(get_nested(response, 'endDate', 'raw')).date(),
-            'total_revenue': get_nested(response, 'totalRevenue', 'raw'),
-            'cost_of_revenue': get_nested(response, 'costOfRevenue', 'raw'),
-            'gross_profit': get_nested(response, 'grossProfit', 'raw'),
-            'research_development': get_nested(response, 'researchDevelopment', 'raw'),
-            'selling_general_administrative': get_nested(response, 'sellingGeneralAdministrative', 'raw'),
-            'non_recurring': get_nested(response, 'nonRecurring', 'raw'),
-            'other_operating_expenses': get_nested(response, 'otherOperatingExpenses', 'raw'),
-            'total_operating_expenses': get_nested(response, 'totalOperatingExpenses', 'raw'),
-            'operating_income': get_nested(response, 'operatingIncome', 'raw'),
-            'total_other_income_expense_net': get_nested(response, 'totalOtherIncomeExpenseNet', 'raw'),
-            'ebit': get_nested(response, 'ebit', 'raw'),
-            'interest_expense': get_nested(response, 'interestExpense', 'raw'),
-            'income_before_tax': get_nested(response, 'incomeBeforeTax', 'raw'),
-            'income_tax_expense': get_nested(response, 'incomeTaxExpense', 'raw'),
-            'minority_interest': get_nested(response, 'minorityInterest', 'raw'),
-            'net_income_from_continuing_ops': get_nested(response, 'netIncomeFromContinuingOps', 'raw'),
-            'discontinued_operations': get_nested(response, 'discontinuedOperations', 'raw'),
-            'extraordinary_items': get_nested(response, 'extraordinaryItems', 'raw'),
-            'effect_of_accounting_charges': get_nested(response, 'effectOfAccountingCharges', 'raw'),
-            'other_items': get_nested(response, 'otherItems', 'raw'),
-            'net_income': get_nested(response, 'netIncome', 'raw'),
-            'net_income_applicable_to_common_shares': get_nested(response, 'netIncomeApplicableToCommonShares', 'raw')
-        }
-        result: Base = cls(**record)
-        return result
+    def from_yfinance_column(cls, df: pd.DataFrame, col_date: Any, isin: str) -> 'IncomeStatement':
+        series = df[col_date].dropna()
+        record: Dict[str, Any] = {'isin': isin, 'report_date': col_date.date() if hasattr(col_date, 'date') else col_date}
+        for yf_label, our_field in cls.FIELD_MAP.items():
+            if yf_label in series.index:
+                record[our_field] = float(series[yf_label])
+        return cls(**record)

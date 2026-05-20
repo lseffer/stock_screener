@@ -11,6 +11,10 @@ __pycache__/
 postgres-data/
 stock_data/*
 
+# Generated output
+_site/
+stocks.db
+
 # C extensions
 *.so
 

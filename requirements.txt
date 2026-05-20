@@ -2,3 +2,4 @@ requests==2.31.0
 yfinance==0.2.36
 sqlalchemy==2.0.27
 pandas==2.2.1
+polars==1.30.0

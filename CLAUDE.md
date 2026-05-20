@@ -3,7 +3,7 @@
 ## Quick reference
 
 - **Language**: Python 3.12, no type checker currently enforced
-- **Dependencies**: `yfinance`, `sqlalchemy`, `pandas`, `requests` (see `requirements.txt`)
+- **Dependencies**: `yfinance`, `sqlalchemy`, `polars`, `pandas` (yfinance dep), `requests` (see `requirements.txt`)
 - **Database**: SQLite (`stocks.db`), created automatically on first run
 - **Entry point**: `python generate_site.py`
 - **Tests**: `python -m unittest discover tests/ -v`
@@ -17,7 +17,7 @@ Screens Nordic stocks (Stockholm, Copenhagen, Helsinki, Oslo) using Piotroski F-
 
 ```
 generate_site.py          Entry point. Orchestrates: init DB → run ETL → compute scores → generate site
-scoring.py                Piotroski F-Score and Magic Formula computation (pandas)
+scoring.py                Piotroski F-Score and Magic Formula computation (polars)
 utils/
   config.py               SQLite engine, Session factory, logger, constants (DB_PATH, OUTPUT_DIR)
   etl_base.py             Abstract ETL base with load_record() and load_records()
@@ -41,7 +41,7 @@ web/static/               Source CSS, JS, images (copied to _site/ during genera
 - **isin column stores yahoo ticker** (e.g. `ERIC-B.ST`), not a real ISIN. The old Nasdaq Nordic scraper that provided ISINs is dead. The yahoo ticker is the natural key since all data fetching uses it.
 - **Incremental ETL**: Prices skip stocks updated within 5 days. Financials skip stocks with data for the current fiscal year. The SQLite DB is restored from the previous run's artifact.
 - **Robustness**: Each ETL phase is wrapped in try/except. Prices commit per-stock. Financial statements commit per-stock batch. Partial failures still produce output. Workflow uses `if: always()` on upload steps.
-- **Scoring in Python**: Piotroski and Magic Formula scores are computed in pandas, replacing the old PostgreSQL materialized views. See `scoring.py`.
+- **Scoring in polars**: Piotroski and Magic Formula scores are computed in polars using expression-based column operations, replacing the old pandas `apply()` approach. See `scoring.py`. Pandas is still a dependency because yfinance returns pandas DataFrames in the ETL layer.
 - **yfinance field mapping**: Financial statement models have a `FIELD_MAP` dict that maps yfinance DataFrame row labels to our column names. yfinance labels vary across stocks/versions, so maps include multiple aliases.
 
 ## Running locally

@@ -14,6 +14,8 @@ import shutil
 from datetime import date, datetime
 from pathlib import Path
 
+import polars as pl
+
 from utils.config import DB_PATH, OUTPUT_DIR, engine, get_last_year, logger
 from utils.models import Base
 
@@ -57,19 +59,20 @@ def compute_scores():
     logger.info('=== Computing Screening Scores ===')
     results = compute_screen_results()
 
-    if results.empty:
+    if results.is_empty():
         logger.warning('No screening results computed')
         return []
 
     # Filter to last fiscal year
     last_year = get_last_year().year
-    results['report_year'] = results['report_date'].apply(
-        lambda d: d.year if isinstance(d, (date, datetime)) else None)
-    filtered = results[results['report_year'] == last_year].drop(columns=['report_year'])
+    results = results.with_columns(
+        pl.col('report_date').cast(pl.String).str.slice(0, 4).cast(pl.Int32).alias('report_year')
+    )
+    filtered = results.filter(pl.col('report_year') == last_year).drop('report_year')
 
-    if filtered.empty:
+    if filtered.is_empty():
         logger.warning('No results for fiscal year %s, returning all results' % last_year)
-        filtered = results.drop(columns=['report_year'], errors='ignore')
+        filtered = results.drop('report_year')
 
     # Convert to JSON-serializable format
     def convert_value(v):
@@ -79,9 +82,10 @@ def compute_scores():
             return v.isoformat()
         return v
 
-    records = []
-    for _, row in filtered.iterrows():
-        records.append({col: convert_value(row[col]) for col in filtered.columns})
+    records = filtered.to_dicts()
+    for record in records:
+        for key in record:
+            record[key] = convert_value(record[key])
 
     logger.info('Generated %s screening results for output' % len(records))
     return records

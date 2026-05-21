@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from utils.config import Session, logger
-from traceback import format_exc
 from typing import List
+
+from utils.config import Session, get_logger
 from utils.models import Base
+
+logger = get_logger('etl')
 
 
 class ETLBase(ABC):
@@ -17,7 +19,7 @@ class ETLBase(ABC):
             return True
         except Exception:
             session.rollback()
-            logger.error('Failed to persist record: %s' % format_exc())
+            logger.exception('Failed to persist %s', type(record).__name__)
             return False
         finally:
             session.close()
@@ -26,24 +28,23 @@ class ETLBase(ABC):
     def load_records(data: List[Base]) -> int:
         """Persist a batch of records, committing in chunks. Returns count of successful records."""
         if not data:
-            logger.info('No data to load')
             return 0
         session = Session()
         loaded = 0
-        for idx, record in enumerate(data):
+        for record in data:
             try:
                 session.merge(record)
                 loaded += 1
             except Exception:
-                logger.warning('Skipping bad record: %s' % format_exc())
                 session.rollback()
+                logger.exception('Skipping bad %s record', type(record).__name__)
                 continue
             if loaded > 0 and loaded % 100 == 0:
                 session.commit()
-                logger.info('Committed %s records' % loaded)
+                logger.debug('Committed %s records (batch)', loaded)
         session.commit()
         session.close()
-        logger.info('Loaded %s/%s records' % (loaded, len(data)))
+        logger.debug('Loaded %s/%s records', loaded, len(data))
         return loaded
 
     @staticmethod

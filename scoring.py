@@ -4,7 +4,9 @@ replacing the PostgreSQL materialized views.
 """
 import sqlite3
 import polars as pl
-from utils.config import DB_PATH, logger
+from utils.config import DB_PATH, get_logger
+
+logger = get_logger('scoring')
 
 
 def _get_conn():
@@ -242,6 +244,9 @@ def compute_screen_results() -> pl.DataFrame:
         logger.warning('No financial data available')
         return pl.DataFrame()
 
+    n_companies = fin_data['isin'].n_unique()
+    logger.info('Loaded %s rows across %s companies', len(fin_data), n_companies)
+
     logger.info('Computing Piotroski scores...')
     piotroski = compute_piotroski_scores(fin_data)
 
@@ -280,5 +285,8 @@ def compute_screen_results() -> pl.DataFrame:
     existing_output_cols = [c for c in output_cols if c in results.columns]
     results = results.select(existing_output_cols)
 
-    logger.info('Computed screen results for %s stock-periods' % len(results))
+    logger.info(
+        'Computed screen results: %s rows across %s companies',
+        len(results), results['isin'].n_unique(),
+    )
     return results

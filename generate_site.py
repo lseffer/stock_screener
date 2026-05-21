@@ -17,8 +17,10 @@ from pathlib import Path
 
 import polars as pl
 
-from utils.config import DB_PATH, OUTPUT_DIR, engine, get_last_year, logger
+from utils.config import DB_PATH, OUTPUT_DIR, engine, get_last_year, get_logger
 from utils.models import Base
+
+logger = get_logger('pipeline')
 
 
 WEB_APP_DIR = Path(__file__).parent / 'web' / 'app'
@@ -27,7 +29,7 @@ WEB_APP_DIST = WEB_APP_DIR / 'dist'
 
 def init_database():
     """Create all tables in the SQLite database."""
-    logger.info('Initializing database at %s' % DB_PATH)
+    logger.info('Initializing database at %s', DB_PATH)
     Base.metadata.create_all(engine)
 
 
@@ -46,15 +48,15 @@ def run_etl():
 
     failures = []
     for name, etl_class in etl_steps:
-        logger.info('=== Running %s ETL ===' % name)
+        logger.info('=== Running %s ETL ===', name)
         try:
             etl_class.job()
-        except Exception as e:
-            logger.error('ETL step "%s" failed: %s' % (name, e))
+        except Exception:
+            logger.exception('ETL step "%s" failed', name)
             failures.append(name)
 
     if failures:
-        logger.warning('ETL completed with failures in: %s' % ', '.join(failures))
+        logger.warning('ETL completed with failures in: %s', ', '.join(failures))
 
 
 def compute_scores():
@@ -76,7 +78,7 @@ def compute_scores():
     filtered = results.filter(pl.col('report_year') == last_year).drop('report_year')
 
     if filtered.is_empty():
-        logger.warning('No results for fiscal year %s, returning all results' % last_year)
+        logger.warning('No results for fiscal year %s, returning all results', last_year)
         filtered = results.drop('report_year')
 
     # Convert to JSON-serializable format
@@ -92,7 +94,7 @@ def compute_scores():
         for key in record:
             record[key] = convert_value(record[key])
 
-    logger.info('Generated %s screening results for output' % len(records))
+    logger.info('Generated %s screening results for output', len(records))
     return records
 
 
@@ -105,7 +107,7 @@ def build_web_app():
     """
     index_html = WEB_APP_DIST / 'index.html'
     if index_html.exists():
-        logger.info('Using prebuilt frontend at %s' % WEB_APP_DIST)
+        logger.info('Using prebuilt frontend at %s', WEB_APP_DIST)
         return
 
     if not WEB_APP_DIR.exists():
@@ -120,7 +122,7 @@ def build_web_app():
             'Run `npm ci && npm run build` inside %s and retry.' % WEB_APP_DIR
         )
 
-    logger.info('Building frontend in %s' % WEB_APP_DIR)
+    logger.info('Building frontend in %s', WEB_APP_DIR)
     if not (WEB_APP_DIR / 'node_modules').exists():
         subprocess.run([npm, 'ci'], cwd=WEB_APP_DIR, check=True)
     subprocess.run([npm, 'run', 'build'], cwd=WEB_APP_DIR, check=True)
@@ -154,12 +156,12 @@ def generate_site(data):
     data_path = output_dir / 'data.json'
     with open(data_path, 'w') as f:
         json.dump(payload, f)
-    logger.info('Wrote %s records to %s' % (len(data), data_path))
+    logger.info('Wrote %s records to %s', len(data), data_path)
 
     # Copy SQLite database to output for download
     if os.path.exists(DB_PATH):
         shutil.copy2(DB_PATH, output_dir / 'stocks.db')
-        logger.info('Copied database to %s' % (output_dir / 'stocks.db'))
+        logger.info('Copied database to %s', output_dir / 'stocks.db')
 
 
 def main():
@@ -176,7 +178,7 @@ def main():
     if not args.etl_only:
         data = compute_scores()
         generate_site(data)
-        logger.info('=== Site generation complete: %s ===' % OUTPUT_DIR)
+        logger.info('=== Site generation complete: %s ===', OUTPUT_DIR)
 
 
 if __name__ == '__main__':

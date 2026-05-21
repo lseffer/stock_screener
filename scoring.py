@@ -52,6 +52,69 @@ def load_financial_data() -> pl.DataFrame:
     return df
 
 
+def load_price_history() -> pl.DataFrame:
+    """Load monthly close price history into a polars DataFrame."""
+    conn = _get_conn()
+    df = _read_table('SELECT isin, market_date, close_price FROM price_history', conn, 'price_history')
+    conn.close()
+    if df.is_empty():
+        return df
+    return df.sort(['isin', 'market_date'])
+
+
+def compute_momentum_scores(df: pl.DataFrame) -> pl.DataFrame:
+    """Compute classic momentum signals from monthly close prices.
+
+    Returns one row per isin with the latest market_date and:
+      - return_12_1: 12-month return excluding the most recent month
+                     (close[t-1] / close[t-13] - 1) — the Jegadeesh-Titman factor
+      - return_6m:   close[t] / close[t-6] - 1
+      - return_3m:   close[t] / close[t-3] - 1
+      - momentum_score: equal-weighted mean of the three returns
+    """
+    if df.is_empty():
+        return pl.DataFrame(schema={
+            'isin': pl.String,
+            'market_date': pl.Date,
+            'return_12_1': pl.Float64,
+            'return_6m': pl.Float64,
+            'return_3m': pl.Float64,
+            'momentum_score': pl.Float64,
+        })
+
+    df = df.sort(['isin', 'market_date'])
+
+    df = df.with_columns([
+        pl.col('close_price').shift(1).over('isin').alias('close_t_minus_1'),
+        pl.col('close_price').shift(3).over('isin').alias('close_t_minus_3'),
+        pl.col('close_price').shift(6).over('isin').alias('close_t_minus_6'),
+        pl.col('close_price').shift(13).over('isin').alias('close_t_minus_13'),
+    ])
+
+    df = df.with_columns([
+        _safe_div(pl.col('close_t_minus_1'), pl.col('close_t_minus_13')).alias('_ratio_12_1'),
+        _safe_div(pl.col('close_price'), pl.col('close_t_minus_6')).alias('_ratio_6m'),
+        _safe_div(pl.col('close_price'), pl.col('close_t_minus_3')).alias('_ratio_3m'),
+    ])
+
+    df = df.with_columns([
+        (pl.col('_ratio_12_1') - 1.0).alias('return_12_1'),
+        (pl.col('_ratio_6m') - 1.0).alias('return_6m'),
+        (pl.col('_ratio_3m') - 1.0).alias('return_3m'),
+    ])
+
+    df = df.with_columns(
+        pl.mean_horizontal(['return_12_1', 'return_6m', 'return_3m']).alias('momentum_score')
+    )
+
+    latest = df.group_by('isin').agg(pl.col('market_date').max().alias('market_date'))
+    latest_rows = df.join(latest, on=['isin', 'market_date'], how='inner')
+
+    return latest_rows.select([
+        'isin', 'market_date', 'return_12_1', 'return_6m', 'return_3m', 'momentum_score',
+    ])
+
+
 def compute_piotroski_scores(df: pl.DataFrame) -> pl.DataFrame:
     """Compute Piotroski F-Score (9 financial health metrics)."""
     df = df.with_columns([
@@ -256,6 +319,13 @@ def compute_screen_results() -> pl.DataFrame:
 
     scores = piotroski.join(magic, on=['isin', 'report_date'], how='full', coalesce=True)
 
+    logger.info('Computing Momentum scores...')
+    price_history = load_price_history()
+    momentum = compute_momentum_scores(price_history)
+    if not momentum.is_empty():
+        momentum = momentum.rename({'market_date': 'momentum_date'})
+        scores = scores.join(momentum, on='isin', how='left')
+
     conn = _get_conn()
     stocks = _read_table('SELECT isin, name, symbol, currency, sector, yahoo_ticker FROM stocks', conn, 'stocks')
     conn.close()
@@ -278,6 +348,7 @@ def compute_screen_results() -> pl.DataFrame:
     results = _add_cap_tier(results)
     results = _add_shareholder_yield_total(results)
     results = _add_percentile_ranks(results)
+    results = _add_value_momentum_score(results)
 
     output_cols = [
         'isin', 'company_name', 'symbol', 'currency', 'sector', 'yahoo_ticker',
@@ -291,6 +362,8 @@ def compute_screen_results() -> pl.DataFrame:
         'trailing_pe', 'forward_pe', 'ev_ebitda_ratio', 'magic_formula_score',
         'magic_formula_score_percentile', 'roic_percentile',
         'shareholder_yield_percentile',
+        'momentum_date', 'return_12_1', 'return_6m', 'return_3m',
+        'momentum_score', 'momentum_score_percentile', 'value_momentum_score',
     ]
     existing_output_cols = [c for c in output_cols if c in results.columns]
     results = results.select(existing_output_cols)
@@ -368,7 +441,7 @@ def _percentile_expr(col: str) -> pl.Expr:
 
 def _add_percentile_ranks(df: pl.DataFrame) -> pl.DataFrame:
     exprs = []
-    for col in ('magic_formula_score', 'roic', 'shareholder_yield_total'):
+    for col in ('magic_formula_score', 'roic', 'shareholder_yield_total', 'momentum_score'):
         if col in df.columns:
             exprs.append(_percentile_expr(col))
     # shareholder_yield_total_percentile -> shareholder_yield_percentile for brevity
@@ -376,3 +449,27 @@ def _add_percentile_ranks(df: pl.DataFrame) -> pl.DataFrame:
     if 'shareholder_yield_total_percentile' in df.columns:
         df = df.rename({'shareholder_yield_total_percentile': 'shareholder_yield_percentile'})
     return df
+
+
+def _add_value_momentum_score(df: pl.DataFrame) -> pl.DataFrame:
+    """Composite of value (Magic Formula) and momentum percentile ranks.
+
+    Average of magic_formula_score_percentile and momentum_score_percentile.
+    Null when either input is missing — both factors must be present to qualify
+    as a value+momentum pick."""
+    if (
+        'magic_formula_score_percentile' not in df.columns
+        or 'momentum_score_percentile' not in df.columns
+    ):
+        return df
+    return df.with_columns(
+        pl.when(
+            pl.col('magic_formula_score_percentile').is_null()
+            | pl.col('momentum_score_percentile').is_null()
+        )
+        .then(None)
+        .otherwise(
+            (pl.col('magic_formula_score_percentile') + pl.col('momentum_score_percentile')) / 2.0
+        )
+        .alias('value_momentum_score')
+    )

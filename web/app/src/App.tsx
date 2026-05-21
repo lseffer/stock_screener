@@ -26,6 +26,7 @@ const PRESET_SORT: Record<PresetId, SortingState> = {
   piotroski: [{ id: 'p_score', desc: true }],
   magic: [{ id: 'magic_formula_score', desc: true }],
   value: [{ id: 'shareholder_yield_total', desc: true }],
+  momentum: [{ id: 'momentum_score', desc: true }],
   all: [{ id: 'magic_formula_score', desc: true }],
 };
 
@@ -35,6 +36,7 @@ const PRIMARY_METRIC: Record<PresetId, { key: keyof Stock; label: string; type: 
   piotroski: { key: 'p_score', label: 'Piotroski', type: 'score' },
   magic: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
   value: { key: 'shareholder_yield_total', label: 'SH Yield', type: 'pct' },
+  momentum: { key: 'momentum_score', label: 'Momentum', type: 'pct' },
   all: { key: 'magic_formula_score', label: 'Magic F', type: 'num' },
 };
 

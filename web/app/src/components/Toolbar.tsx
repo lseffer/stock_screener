@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CapTier, PresetId } from '../types';
 import { presets } from '../columns';
+import { ScreenerInfo } from './ScreenerInfo';
 
 export interface Filters {
   capTiers: Set<CapTier>;
@@ -93,6 +94,7 @@ export function Toolbar({
   columnPicker,
 }: ToolbarProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const update = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onFilters({ ...filters, [key]: value });
@@ -114,6 +116,15 @@ export function Toolbar({
           <span className="generation-date">Updated {generatedAt}</span>
         </div>
         <div className="toolbar-actions">
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={() => setInfoOpen(true)}
+            aria-label="About the screeners"
+            title="About the screeners"
+          >
+            <span aria-hidden="true" className="info-glyph">i</span>
+            <span className="btn-icon-label">Info</span>
+          </button>
           <button
             className="btn btn-ghost"
             onClick={() => setFiltersOpen((v) => !v)}
@@ -279,6 +290,8 @@ export function Toolbar({
           </div>
         </div>
       )}
+
+      <ScreenerInfo open={infoOpen} onClose={() => setInfoOpen(false)} />
     </header>
   );
 }

@@ -39,11 +39,13 @@ def run_etl():
     from utils.stock_info_etl import StockInfoETL
     from utils.stock_valuation_etl import StockValuationETL
     from utils.stock_financial_statements_etl import StockFinancialStatementsETL
+    from utils.stock_price_history_etl import StockPriceHistoryETL
 
     etl_steps = [
         ('Stock Info', StockInfoETL),
         ('Financial Statements', StockFinancialStatementsETL),
         ('Stock Valuation', StockValuationETL),
+        ('Price History', StockPriceHistoryETL),
     ]
 
     failures = []

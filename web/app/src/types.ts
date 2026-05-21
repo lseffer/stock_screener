@@ -32,6 +32,13 @@ export interface Stock {
   magic_formula_score_percentile: number | null;
   roic_percentile: number | null;
   shareholder_yield_percentile: number | null;
+  momentum_date: string | null;
+  return_12_1: number | null;
+  return_6m: number | null;
+  return_3m: number | null;
+  momentum_score: number | null;
+  momentum_score_percentile: number | null;
+  value_momentum_score: number | null;
 }
 
 export interface DataPayload {
@@ -39,4 +46,4 @@ export interface DataPayload {
   rows: Stock[];
 }
 
-export type PresetId = 'top_picks' | 'overview' | 'piotroski' | 'magic' | 'value' | 'all';
+export type PresetId = 'top_picks' | 'overview' | 'piotroski' | 'magic' | 'value' | 'momentum' | 'all';

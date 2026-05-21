@@ -9,6 +9,7 @@ from utils.models import (
     CashFlowStatement,
     IncomeStatement,
     Price,
+    PriceHistory,
     Stock,
 )
 
@@ -27,6 +28,27 @@ def fetch_tickers_needing_price_update(max_age_days: int = 5) -> List[Tuple]:
     recently_updated = (
         session.query(Price.isin)
         .filter(Price.market_date >= cutoff)
+        .subquery()
+    )
+    res: List[Tuple] = (
+        session.query(Stock.isin, Stock.yahoo_ticker)
+        .filter(~Stock.isin.in_(session.query(recently_updated.c.isin)))
+        .group_by(Stock.isin, Stock.yahoo_ticker)
+        .all()
+    )
+    session.close()
+    return res
+
+
+def fetch_tickers_needing_price_history(max_age_days: int = 25) -> List[Tuple]:
+    """Return tickers whose latest price_history row is older than max_age_days,
+    or which have no price_history rows at all. Default 25 days is just under
+    a month, so the weekly job picks up the new monthly bar exactly once per month."""
+    session = Session()
+    cutoff = date.today() - timedelta(days=max_age_days)
+    recently_updated = (
+        session.query(PriceHistory.isin)
+        .filter(PriceHistory.market_date >= cutoff)
         .subquery()
     )
     res: List[Tuple] = (

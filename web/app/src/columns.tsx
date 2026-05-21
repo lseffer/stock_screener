@@ -180,6 +180,58 @@ export const columns = [
     sortUndefined: 'last',
     size: 90,
   }),
+  ch.accessor(num('momentum_score'), {
+    id: 'momentum_score',
+    header: 'Momentum',
+    cell: (info) => (
+      <ValueWithRank
+        value={info.getValue()}
+        formatted={fmtPercent(info.getValue())}
+        percentile={info.row.original.momentum_score_percentile}
+      />
+    ),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 170,
+  }),
+  ch.accessor(num('return_12_1'), {
+    id: 'return_12_1',
+    header: '12-1m Return',
+    cell: (info) => fmtPercent(info.getValue()),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 130,
+  }),
+  ch.accessor(num('return_6m'), {
+    id: 'return_6m',
+    header: '6m Return',
+    cell: (info) => fmtPercent(info.getValue()),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 110,
+  }),
+  ch.accessor(num('return_3m'), {
+    id: 'return_3m',
+    header: '3m Return',
+    cell: (info) => fmtPercent(info.getValue()),
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 110,
+  }),
+  ch.accessor(num('value_momentum_score'), {
+    id: 'value_momentum_score',
+    header: 'Value + Momentum',
+    cell: (info) => {
+      const v = info.getValue();
+      if (v === null || v === undefined || Number.isNaN(v)) {
+        return <span className="muted">–</span>;
+      }
+      return <span className={`rank-pill rank-${rankTone(v)}`}>p{Math.round(v)}</span>;
+    },
+    sortingFn: 'basic',
+    sortUndefined: 'last',
+    size: 160,
+  }),
   ch.accessor(num('shareholder_yield_total'), {
     id: 'shareholder_yield_total',
     header: 'SH Yield (total)',
@@ -306,6 +358,8 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'sector',
       'p_score',
       'magic_formula_score',
+      'momentum_score',
+      'value_momentum_score',
       'roic',
       'ev_ebitda_ratio',
       'price',
@@ -320,6 +374,8 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'sector',
       'p_score',
       'magic_formula_score',
+      'momentum_score',
+      'value_momentum_score',
       'roic',
       'ev_ebitda_ratio',
       'price',
@@ -363,6 +419,21 @@ export const presets: Record<PresetId, { label: string; visible: string[] }> = {
       'ncav_ratio',
       'shareholder_yield_total',
       'trailing_pe',
+      'cap_tier',
+    ],
+  },
+  momentum: {
+    label: 'Momentum',
+    visible: [
+      'company_name',
+      'sector',
+      'momentum_score',
+      'return_12_1',
+      'return_6m',
+      'return_3m',
+      'value_momentum_score',
+      'price',
+      'market_cap_eur',
       'cap_tier',
     ],
   },

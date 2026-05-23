@@ -10,6 +10,15 @@ export interface Stock {
   report_date: string | null;
   market_date: string | null;
   p_score: number | null;
+  p_score_1: number | null;
+  p_score_2: number | null;
+  p_score_3: number | null;
+  p_score_4: number | null;
+  p_score_5: number | null;
+  p_score_6: number | null;
+  p_score_7: number | null;
+  p_score_8: number | null;
+  p_score_9: number | null;
   roic: number | null;
   ev_ebitda_ratio_inv: number | null;
   shareholder_yield_stock: number | null;

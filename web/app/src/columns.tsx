@@ -1,4 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Stock, PresetId, CapTier } from './types';
 import { fmtCompact, fmtDecimal, fmtEUR, fmtPercent, fmtPrice, fmtText } from './format';
 
@@ -50,6 +52,81 @@ function ValueWithRank({
   );
 }
 
+export const PIOTROSKI_CRITERIA: { key: keyof Stock; label: string }[] = [
+  { key: 'p_score_1', label: 'Positive ROA' },
+  { key: 'p_score_2', label: 'Positive Cash Flow' },
+  { key: 'p_score_3', label: 'Improving ROA' },
+  { key: 'p_score_4', label: 'Earnings Quality' },
+  { key: 'p_score_5', label: 'Lower Leverage' },
+  { key: 'p_score_6', label: 'Improving Liquidity' },
+  { key: 'p_score_7', label: 'No Share Dilution' },
+  { key: 'p_score_8', label: 'Improving Gross Margin' },
+  { key: 'p_score_9', label: 'Improving Asset Turnover' },
+];
+
+function PiotroskiBreakdown({ stock }: { stock: Stock }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePos();
+    const handler = (e: MouseEvent) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, updatePos]);
+
+  const v = stock.p_score;
+  if (v === null || v === undefined) return <span className="muted">–</span>;
+  const tone = v >= 7 ? 'good' : v >= 5 ? 'mid' : 'bad';
+
+  return (
+    <div className="piotroski-wrap">
+      <button
+        ref={btnRef}
+        className={`pill pill-${tone} pill-clickable`}
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+      >
+        {v}
+      </button>
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          className="piotroski-popover"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <div className="piotroski-popover-title">Piotroski F-Score: {v}/9</div>
+          <ul className="piotroski-list">
+            {PIOTROSKI_CRITERIA.map(({ key, label }) => {
+              const pass = stock[key] === 1;
+              return (
+                <li key={key} className={pass ? 'p-pass' : 'p-fail'}>
+                  <span className="p-icon">{pass ? '✓' : '✗'}</span>
+                  <span>{label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
 const CAP_TIER_LABEL: Record<CapTier, string> = {
   large: 'Large',
   mid: 'Mid',
@@ -95,12 +172,7 @@ export const columns = [
   ch.accessor(num('p_score'), {
     id: 'p_score',
     header: 'Piotroski',
-    cell: (info) => {
-      const v = info.getValue();
-      if (v === null) return <span className="muted">–</span>;
-      const tone = v >= 7 ? 'good' : v >= 5 ? 'mid' : 'bad';
-      return <span className={`pill pill-${tone}`}>{v}</span>;
-    },
+    cell: (info) => <PiotroskiBreakdown stock={info.row.original} />,
     sortingFn: 'basic',
     size: 110,
   }),

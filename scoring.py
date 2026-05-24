@@ -353,6 +353,8 @@ def compute_screen_results() -> pl.DataFrame:
     output_cols = [
         'isin', 'company_name', 'symbol', 'currency', 'sector', 'yahoo_ticker',
         'report_date', 'market_date', 'p_score',
+        'p_score_1', 'p_score_2', 'p_score_3', 'p_score_4', 'p_score_5',
+        'p_score_6', 'p_score_7', 'p_score_8', 'p_score_9',
         'roic', 'ev_ebitda_ratio_inv', 'shareholder_yield_stock',
         'shareholder_yield_dividends', 'shareholder_yield_total',
         'price_to_sales', 'price_to_cash_flow',

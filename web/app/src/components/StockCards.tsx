@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Stock } from '../types';
 import { fmtCompact, fmtDecimal, fmtEUR, fmtPercent, fmtPrice, fmtText } from '../format';
+import { PIOTROSKI_CRITERIA } from '../columns';
 
 function rankTone(p: number): string {
   if (p >= 80) return 'top';
@@ -41,7 +42,7 @@ interface StockCardsProps {
 }
 
 const CARD_HEIGHT = 132;
-const EXPANDED_EXTRA = 220;
+const EXPANDED_EXTRA = 320;
 
 function formatMetric(value: unknown, type: 'pct' | 'num' | 'score'): string {
   if (typeof value !== 'number' || Number.isNaN(value)) return '–';
@@ -170,6 +171,22 @@ export function StockCards({ rows, primaryMetric }: StockCardsProps) {
                       <Stat label="Analysts" value={fmtDecimal(stock.number_of_analyst_opinions)} />
                       <Stat label="Report" value={fmtText(stock.report_date)} />
                     </div>
+                    {stock.p_score !== null && (
+                      <div className="piotroski-breakdown-inline">
+                        <div className="piotroski-popover-title">Piotroski Breakdown</div>
+                        <ul className="piotroski-list">
+                          {PIOTROSKI_CRITERIA.map(({ key, label }) => {
+                            const pass = stock[key] === 1;
+                            return (
+                              <li key={key} className={pass ? 'p-pass' : 'p-fail'}>
+                                <span className="p-icon">{pass ? '✓' : '✗'}</span>
+                                <span>{label}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
                     <a
                       className="card-link"
                       href={`https://www.google.com/search?q=${encodeURIComponent(

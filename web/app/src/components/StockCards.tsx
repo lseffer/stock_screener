@@ -76,7 +76,11 @@ export function StockCards({ rows, primaryMetric }: StockCardsProps) {
       else next.add(isin);
       return next;
     });
-    requestAnimationFrame(() => virtualizer.measure());
+    // Don't call virtualizer.measure() here: it resets the entire measurement
+    // cache back to estimateSize, and the already-mounted cards won't re-fire
+    // their ResizeObserver, so their real heights are lost and the absolutely
+    // positioned cards overlap. measureElement already re-measures the card
+    // that grew/shrank and recomputes every offset on its own.
   };
 
   if (rows.length === 0) {

@@ -78,6 +78,11 @@ class ResolutionCache:
     def put(self, isin: str, resolution: Resolution) -> None:
         self._data[isin] = {'source': resolution[0], 'id': resolution[1]}
 
+    def invalidate(self, key: str) -> None:
+        """Drop a cached resolution that turned out not to deliver prices, so
+        the next run re-resolves instead of reusing a dead ticker."""
+        self._data.pop(key, None)
+
     def save(self) -> None:
         self.path.write_text(json.dumps(self._data, indent=2, sort_keys=True))
 
@@ -124,32 +129,63 @@ def _yahoo_resolve_isin(isin: str, log) -> Optional[str]:
     return None
 
 
+def _yahoo_has_history(symbol: str, log) -> bool:
+    import yfinance as yf
+
+    try:
+        history = yf.Ticker(symbol).history(period='1mo', auto_adjust=True)
+        return history is not None and not history.empty
+    except Exception:
+        log.debug('History probe failed for %s', symbol, exc_info=True)
+        return False
+
+
+def _validated(candidates, log) -> Optional[Resolution]:
+    """Accept the first candidate that actually delivers price data. Yahoo
+    search happily returns fund tickers with no price history at all; without
+    this check such a match would be cached and shadow the Avanza fallback."""
+    for resolution in candidates:
+        if resolution is None:
+            continue
+        source, identifier = resolution
+        if source == 'yahoo':
+            if _yahoo_has_history(identifier, log):
+                return resolution
+            log.info('Yahoo candidate %s has no price history; trying next source', identifier)
+        elif source == 'avanza':
+            if avanza_public.fetch_nav_history(identifier, 0.5, log):
+                return resolution
+            log.info('Avanza candidate %s returned no NAV history; trying next source', identifier)
+    return None
+
+
 def auto_resolve(isin: str, name: str, log) -> Optional[Resolution]:
-    """Resolve by ISIN when there is one; otherwise by name.
+    """Resolve by ISIN when there is one; otherwise by name. Candidates are
+    validated against actual price availability before being accepted.
 
     Name-only holdings try avanza.se first: fund names like "Avanza Zero" or
     "Avanza 100" are Avanza's own products and their search matches them
     exactly, while Yahoo's name search is noisier."""
-    if isin:
-        symbol = _yahoo_resolve_isin(isin, log)
-        if symbol:
-            return ('yahoo', symbol)
-        orderbook_id = avanza_public.search_orderbook_id(isin, log)
-        if orderbook_id is None and name:
-            orderbook_id = avanza_public.search_orderbook_id(name, log)
-        if orderbook_id:
-            return ('avanza', orderbook_id)
-        return None
 
-    if not name:
-        return None
-    orderbook_id = avanza_public.search_orderbook_id(name, log)
-    if orderbook_id:
-        return ('avanza', orderbook_id)
-    symbol = _yahoo_search(name, None, log)
-    if symbol:
-        return ('yahoo', symbol)
-    return None
+    def yahoo_isin():
+        symbol = _yahoo_resolve_isin(isin, log)
+        return ('yahoo', symbol) if symbol else None
+
+    def yahoo_name():
+        symbol = _yahoo_search(name, None, log) if name else None
+        return ('yahoo', symbol) if symbol else None
+
+    def avanza(query):
+        def candidate():
+            orderbook_id = avanza_public.search_orderbook_id(query, log) if query else None
+            return ('avanza', orderbook_id) if orderbook_id else None
+        return candidate
+
+    if isin:
+        makers = [yahoo_isin, avanza(isin), avanza(name), yahoo_name]
+    else:
+        makers = [avanza(name), yahoo_name]
+    return _validated((make() for make in makers), log)
 
 
 def resolve_all(merged: List[MergedHolding], overrides: Dict[str, Optional[Resolution]],

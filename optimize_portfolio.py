@@ -155,6 +155,9 @@ def main():
     by_key = {m.key: m for m in merged}
     for key, reason in failures:
         excluded.append((by_key[key], reason))
+        cache.invalidate(key)
+    if failures:
+        cache.save()
 
     try:
         panel, dropped = align_and_clean(prices, args.min_days, logger)

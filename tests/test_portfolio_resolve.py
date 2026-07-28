@@ -3,9 +3,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import portfolio_opt.avanza_public
+import portfolio_opt.resolve
 from portfolio_opt.holdings import MergedHolding
 from portfolio_opt.resolve import (
     ResolutionCache,
+    _validated,
     load_overrides,
     parse_override_value,
     resolve_all,
@@ -89,6 +92,41 @@ class TestLoadOverrides(unittest.TestCase):
             self.assertEqual(load_overrides(Path(tmp), log), {})
 
 
+class TestValidatedCandidates(unittest.TestCase):
+    """A resolution is only accepted if its source actually delivers prices."""
+
+    def setUp(self):
+        self._yahoo = portfolio_opt.resolve._yahoo_has_history
+        self._nav = portfolio_opt.avanza_public.fetch_nav_history
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        portfolio_opt.resolve._yahoo_has_history = self._yahoo
+        portfolio_opt.avanza_public.fetch_nav_history = self._nav
+
+    def test_dead_yahoo_ticker_falls_through_to_avanza(self):
+        portfolio_opt.resolve._yahoo_has_history = lambda symbol, log: False
+        portfolio_opt.avanza_public.fetch_nav_history = (
+            lambda orderbook_id, years, log: {1: 1.0})
+        result = _validated(
+            iter([('yahoo', '0P0000DEAD.ST'), ('avanza', '12345')]), log)
+        self.assertEqual(result, ('avanza', '12345'))
+
+    def test_live_yahoo_ticker_accepted_without_touching_avanza(self):
+        portfolio_opt.resolve._yahoo_has_history = lambda symbol, log: True
+        portfolio_opt.avanza_public.fetch_nav_history = (
+            lambda *a: self.fail('avanza should not be probed'))
+        result = _validated(iter([('yahoo', 'ERIC-B.ST'), ('avanza', '12345')]), log)
+        self.assertEqual(result, ('yahoo', 'ERIC-B.ST'))
+
+    def test_all_candidates_dead_returns_none(self):
+        portfolio_opt.resolve._yahoo_has_history = lambda symbol, log: False
+        portfolio_opt.avanza_public.fetch_nav_history = lambda *a: {}
+        result = _validated(
+            iter([('yahoo', 'X'), ('avanza', '1'), None]), log)
+        self.assertIsNone(result)
+
+
 class TestResolutionCache(unittest.TestCase):
     def test_round_trip(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -104,6 +142,17 @@ class TestResolutionCache(unittest.TestCase):
             (Path(tmp) / '.ticker_cache.json').write_text('{not json')
             cache = ResolutionCache(Path(tmp))
             self.assertIsNone(cache.get('SE0000108656'))
+
+    def test_invalidate_removes_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = ResolutionCache(Path(tmp))
+            cache.put('SE0000108656', ('yahoo', 'DEAD.ST'))
+            cache.save()
+            cache.invalidate('SE0000108656')
+            cache.invalidate('NEVER-CACHED')  # no-op, no crash
+            cache.save()
+            reloaded = ResolutionCache(Path(tmp))
+            self.assertIsNone(reloaded.get('SE0000108656'))
 
 
 class TestResolveAll(unittest.TestCase):

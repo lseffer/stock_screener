@@ -112,7 +112,11 @@ Nothing touches `_site/` or the public GitHub Pages deployment.
   excludes the holding. Unresolvable holdings are excluded from the optimization
   and listed in the report with their value share.
 - **Flags**: `--years`, `--risk-free`, `--max-weight` (per-position cap),
-  `--min-days`, `--portfolio-dir`, `--output`, `--no-cache`.
+  `--min-days`, `--portfolio-dir`, `--output`, `--no-cache`, and
+  `--probe QUERY` (diagnostic: resolve one ISIN/name/ticker/Morningstar id and
+  show what price data is found). A bare Morningstar id (e.g. `0P0001TPAB`) as a
+  ticker is automatically tried with the common fund exchange suffixes
+  (`.ST`, `.HE`, `.F`, ...).
 - **FX**: returns are computed on native-currency series; static `utils/fx.py`
   rates only convert market values to SEK for current weights. FX volatility is
   not modeled in the covariance.

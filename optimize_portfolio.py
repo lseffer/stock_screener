@@ -97,6 +97,31 @@ def _sek(x):
     return '{:,.0f} kr'.format(x).replace(',', ' ')
 
 
+def run_probe(query: str, years: int) -> int:
+    """Resolve one ad-hoc query and show the price data found for it."""
+    from portfolio_opt.prices import fetch_history
+    from portfolio_opt.resolve import probe
+
+    resolution = probe(query, logger)
+    if resolution is None:
+        logger.error('No price source found for %r. If you have a Morningstar id or '
+                     'Yahoo ticker for it, pin it in portfolio/ticker_overrides.csv.', query)
+        return 1
+    logger.info('Resolved %r to %s:%s', query, *resolution)
+    prices, failures = fetch_history({'probe': resolution}, years, logger)
+    if failures or prices.empty:
+        logger.error('Resolved to %s:%s but no price history came back', *resolution)
+        return 1
+    closes = prices['probe'].dropna()
+    logger.info('Got %d daily prices from %s to %s (latest: %.2f)',
+                len(closes), closes.index[0].date(), closes.index[-1].date(),
+                closes.iloc[-1])
+    override = ('%s:%s' % resolution) if resolution[0] == 'avanza' else resolution[1]
+    logger.info("To pin this permanently, add to portfolio/ticker_overrides.csv:  "
+                "<isin-or-name>,%s", override)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description='Markowitz portfolio optimization over broker CSV exports')
     parser.add_argument('--portfolio-dir', default='portfolio', help='Folder with broker CSV exports (default: portfolio)')
@@ -106,7 +131,14 @@ def main():
     parser.add_argument('--max-weight', type=float, default=1.0, help='Max weight per holding, 0-1 (default: 1.0)')
     parser.add_argument('--min-days', type=int, default=250, help='Preferred minimum common trading days (default: 250)')
     parser.add_argument('--no-cache', action='store_true', help='Ignore cached ISIN->ticker resolutions')
+    parser.add_argument('--probe', metavar='QUERY',
+                        help='Diagnostic: resolve a single ISIN, fund/stock name, Yahoo ticker '
+                             'or Morningstar id (e.g. 0P0001TPAB) and show what price data is '
+                             'found, then exit')
     args = parser.parse_args()
+
+    if args.probe:
+        return run_probe(args.probe, args.years)
 
     from portfolio_opt.holdings import load_holdings, merge_holdings
     from portfolio_opt.optimizer import optimize

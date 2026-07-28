@@ -11,12 +11,13 @@ reported; add them to portfolio/ticker_overrides.csv to pin them manually.
 """
 import csv
 import json
+import re
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from portfolio_opt import avanza_public
-from portfolio_opt.holdings import MergedHolding, holding_key
+from portfolio_opt.holdings import ISIN_RE, MergedHolding, holding_key
 from utils.config import bind_ticker
 
 Resolution = Tuple[str, str]  # (source, identifier)
@@ -26,6 +27,20 @@ CACHE_FILENAME = '.ticker_cache.json'
 
 # Preferred Yahoo exchange suffix per ISIN country prefix.
 COUNTRY_SUFFIX = {'SE': '.ST', 'DK': '.CO', 'FI': '.HE', 'NO': '.OL'}
+
+# A bare Morningstar performance id (as found on morningstar.com fund pages,
+# e.g. 0P0001TPAB). Yahoo lists such funds as <id>.<exchange suffix>.
+MORNINGSTAR_ID_RE = re.compile(r'^0P[0-9A-Z]{4,12}$', re.IGNORECASE)
+YAHOO_FUND_SUFFIXES = ['.ST', '.HE', '.CO', '.OL', '.IR', '.F', '.DE', '.L']
+
+
+def expand_yahoo_candidates(symbol: str) -> List[str]:
+    """Candidate Yahoo tickers for ``symbol``. A bare Morningstar id is tried
+    as-is and then with the common European fund exchange suffixes."""
+    symbol = symbol.strip()
+    if MORNINGSTAR_ID_RE.match(symbol):
+        return [symbol] + [symbol + suffix for suffix in YAHOO_FUND_SUFFIXES]
+    return [symbol]
 
 EXCLUDED = ('excluded', '')  # sentinel for deliberate exclusion via empty override
 
@@ -149,8 +164,16 @@ def _validated(candidates, log) -> Optional[Resolution]:
             continue
         source, identifier = resolution
         if source == 'yahoo':
-            if _yahoo_has_history(identifier, log):
-                return resolution
+            accepted = None
+            for symbol in expand_yahoo_candidates(identifier):
+                if _yahoo_has_history(symbol, log):
+                    accepted = symbol
+                    break
+            if accepted is not None:
+                if accepted != identifier:
+                    log.info('Resolved bare Morningstar id %s to Yahoo ticker %s',
+                             identifier, accepted)
+                return ('yahoo', accepted)
             log.info('Yahoo candidate %s has no price history; trying next source', identifier)
         elif source == 'avanza':
             if avanza_public.fetch_nav_history(identifier, 0.5, log):
@@ -186,6 +209,26 @@ def auto_resolve(isin: str, name: str, log) -> Optional[Resolution]:
     else:
         makers = [avanza(name), yahoo_name]
     return _validated((make() for make in makers), log)
+
+
+def probe(query: str, log) -> Optional[Resolution]:
+    """Run the resolution chain for an ad-hoc query and return what it finds.
+
+    The query is treated as an ISIN if it looks like one, as a Yahoo ticker /
+    Morningstar id if it looks like one (also searched as a name if dead), and
+    as a holding name otherwise."""
+    query = query.strip()
+    if ISIN_RE.match(query.upper()):
+        log.info('Probing %s as an ISIN', query.upper())
+        return auto_resolve(query.upper(), '', log)
+    if MORNINGSTAR_ID_RE.match(query) or ('.' in query and ' ' not in query):
+        log.info('Probing %s as a Yahoo ticker / Morningstar id', query)
+        direct = _validated(iter([('yahoo', query)]), log)
+        if direct is not None:
+            return direct
+        log.info('No price history for ticker %s; falling back to name search', query)
+    log.info('Probing %r as a holding name', query)
+    return auto_resolve('', query, log)
 
 
 def resolve_all(merged: List[MergedHolding], overrides: Dict[str, Optional[Resolution]],

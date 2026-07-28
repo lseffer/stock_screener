@@ -9,8 +9,10 @@ from portfolio_opt.holdings import MergedHolding
 from portfolio_opt.resolve import (
     ResolutionCache,
     _validated,
+    expand_yahoo_candidates,
     load_overrides,
     parse_override_value,
+    probe,
     resolve_all,
 )
 
@@ -125,6 +127,35 @@ class TestValidatedCandidates(unittest.TestCase):
         result = _validated(
             iter([('yahoo', 'X'), ('avanza', '1'), None]), log)
         self.assertIsNone(result)
+
+
+class TestMorningstarIds(unittest.TestCase):
+    def test_bare_morningstar_id_expands_with_fund_suffixes(self):
+        candidates = expand_yahoo_candidates('0P0001TPAB')
+        self.assertEqual(candidates[0], '0P0001TPAB')
+        self.assertIn('0P0001TPAB.ST', candidates)
+        self.assertIn('0P0001TPAB.HE', candidates)
+        self.assertIn('0P0001TPAB.F', candidates)
+
+    def test_suffixed_or_normal_tickers_not_expanded(self):
+        self.assertEqual(expand_yahoo_candidates('0P0001TPAB.HE'), ['0P0001TPAB.HE'])
+        self.assertEqual(expand_yahoo_candidates('ERIC-B.ST'), ['ERIC-B.ST'])
+        self.assertEqual(expand_yahoo_candidates('AAPL'), ['AAPL'])
+
+    def test_validation_finds_suffixed_variant(self):
+        original = portfolio_opt.resolve._yahoo_has_history
+        self.addCleanup(setattr, portfolio_opt.resolve, '_yahoo_has_history', original)
+        portfolio_opt.resolve._yahoo_has_history = (
+            lambda symbol, log: symbol == '0P0001TPAB.HE')
+        result = _validated(iter([('yahoo', '0P0001TPAB')]), log)
+        self.assertEqual(result, ('yahoo', '0P0001TPAB.HE'))
+
+    def test_probe_classifies_morningstar_id_as_ticker(self):
+        original = portfolio_opt.resolve._yahoo_has_history
+        self.addCleanup(setattr, portfolio_opt.resolve, '_yahoo_has_history', original)
+        portfolio_opt.resolve._yahoo_has_history = (
+            lambda symbol, log: symbol == '0P0001TPAB.F')
+        self.assertEqual(probe('0P0001TPAB', log), ('yahoo', '0P0001TPAB.F'))
 
 
 class TestResolutionCache(unittest.TestCase):

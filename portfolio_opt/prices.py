@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple
 import pandas as pd
 
 from portfolio_opt import avanza_public
-from portfolio_opt.resolve import Resolution
+from portfolio_opt.resolve import Resolution, expand_yahoo_candidates
 from utils.config import bind_ticker
 
 MIN_ROWS_ABORT = 60
@@ -34,10 +34,19 @@ def fetch_history(resolved: Dict[str, Resolution], years: int, log,
         tlog = bind_ticker(log, '%s:%s' % (source, identifier))
         try:
             if source == 'yahoo':
-                history = yf.Ticker(identifier).history(
-                    period='%dy' % years, interval='1d', auto_adjust=True
-                )
-                closes = history['Close'].dropna() if history is not None and not history.empty else None
+                closes = None
+                # A bare Morningstar id (e.g. from an override) is tried with
+                # the common fund exchange suffixes until one has data.
+                for symbol in expand_yahoo_candidates(identifier):
+                    history = yf.Ticker(symbol).history(
+                        period='%dy' % years, interval='1d', auto_adjust=True
+                    )
+                    if history is not None and not history.empty:
+                        closes = history['Close'].dropna()
+                    if closes is not None and not closes.empty:
+                        if symbol != identifier:
+                            tlog.info('Using Yahoo ticker %s', symbol)
+                        break
                 if closes is not None and not closes.empty:
                     closes.index = pd.DatetimeIndex(closes.index.tz_localize(None)).normalize()
                     series[key] = closes[~closes.index.duplicated(keep='last')]

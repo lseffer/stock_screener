@@ -7,6 +7,7 @@ from portfolio_opt.holdings import (
     Holding,
     _parse_number,
     detect_and_parse,
+    holding_key,
     merge_holdings,
     parse_avanza,
     parse_generic,
@@ -125,6 +126,62 @@ class TestDetectAndParse(unittest.TestCase):
         path = self._write('junk.csv', 'foo;bar\n1;2\n')
         with self.assertRaises(ValueError):
             detect_and_parse(path, log)
+
+
+class TestNameOnlyHoldings(unittest.TestCase):
+    NAME_ONLY_CSV = (
+        'name,isin,quantity,market_value,currency\n'
+        'Avanza Zero,,300,75431.10,SEK\n'
+        'Avanza 100,,120,54000.00,SEK\n'
+        'Ericsson B,SE0000108656,100,8512.50,SEK\n'
+    )
+
+    def test_generic_rows_without_isin_kept(self):
+        holdings = parse_generic(self.NAME_ONLY_CSV, log)
+        self.assertEqual(len(holdings), 3)
+        zero = holdings[0]
+        self.assertEqual(zero.isin, '')
+        self.assertEqual(zero.name, 'Avanza Zero')
+
+    def test_broker_rows_without_isin_still_skipped(self):
+        csv_text = (
+            'Kontonummer;Namn;Volym;Marknadsvärde;ISIN;Valuta\n'
+            '1;Avanza Zero;300;75 431,10;;SEK\n'
+        )
+        self.assertEqual(parse_avanza(csv_text, log), [])
+
+    def test_invalid_isin_falls_back_to_name(self):
+        csv_text = (
+            'name,isin,quantity,market_value,currency\n'
+            'Avanza Zero,BADISIN,300,75431.10,SEK\n'
+        )
+        holdings = parse_generic(csv_text, log)
+        self.assertEqual(holdings[0].isin, '')
+
+    def test_generic_without_isin_column_at_all(self):
+        csv_text = (
+            'name,quantity,market_value,currency\n'
+            'Avanza Zero,300,75431.10,SEK\n'
+        )
+        holdings = parse_generic(csv_text, log)
+        self.assertEqual(len(holdings), 1)
+        self.assertEqual(holdings[0].isin, '')
+
+    def test_merge_keys_on_normalized_name(self):
+        holdings = parse_generic(self.NAME_ONLY_CSV, log) + [
+            Holding('avanza  zero', '', 10, 2500.0, 'SEK', 'other'),
+        ]
+        merged = merge_holdings(holdings, log)
+        by_key = {m.key: m for m in merged}
+        self.assertEqual(len(merged), 3)
+        zero = by_key['name:avanza zero']
+        self.assertAlmostEqual(zero.market_value_sek, 77931.10)
+        self.assertEqual(by_key['SE0000108656'].key, 'SE0000108656')
+
+    def test_holding_key(self):
+        self.assertEqual(holding_key('SE0000108656', 'Ericsson'), 'SE0000108656')
+        self.assertEqual(holding_key('', ' Avanza  Zero '), 'name:avanza zero')
+        self.assertEqual(holding_key('junk', 'Avanza Zero'), 'name:avanza zero')
 
 
 class TestMerge(unittest.TestCase):

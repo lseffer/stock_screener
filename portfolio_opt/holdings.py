@@ -32,11 +32,24 @@ class Holding:
 @dataclass
 class MergedHolding:
     name: str
-    isin: str
+    isin: str  # '' for name-only holdings (generic CSV rows without an ISIN)
     quantity: float
     market_value_sek: float
     currencies: List[str] = field(default_factory=list)
     accounts: List[str] = field(default_factory=list)
+
+    @property
+    def key(self) -> str:
+        """Stable identifier for resolution/caching: the ISIN when there is
+        one, otherwise a normalized-name key."""
+        return self.isin if self.isin else holding_key('', self.name)
+
+
+def holding_key(isin: str, name: str) -> str:
+    isin = (isin or '').strip().upper()
+    if ISIN_RE.match(isin):
+        return isin
+    return 'name:' + ' '.join((name or '').lower().split())
 
 
 def sek_rate(currency: str) -> Optional[float]:
@@ -109,7 +122,7 @@ def _detect_delimiter(text: str) -> str:
 
 
 def _parse_with_aliases(text: str, delimiter: str, aliases: Dict[str, Sequence[str]],
-                        broker: str, log) -> List[Holding]:
+                        broker: str, log, require_isin: bool = True) -> List[Holding]:
     reader = csv.DictReader(io.StringIO(text.lstrip('﻿')), delimiter=delimiter)
     if reader.fieldnames is None:
         return []
@@ -122,7 +135,8 @@ def _parse_with_aliases(text: str, delimiter: str, aliases: Dict[str, Sequence[s
                 columns[target] = normalized[candidate]
                 break
 
-    missing = [k for k in ('isin', 'market_value') if k not in columns]
+    required = ('isin', 'market_value') if require_isin else ('market_value',)
+    missing = [k for k in required if k not in columns]
     if missing:
         raise ValueError(
             '%s file is missing required column(s) %s; found headers: %s'
@@ -131,12 +145,23 @@ def _parse_with_aliases(text: str, delimiter: str, aliases: Dict[str, Sequence[s
 
     holdings = []
     for row in reader:
-        isin = (row.get(columns['isin']) or '').strip().upper()
+        isin = (row.get(columns.get('isin', ''), '') or '').strip().upper()
         market_value = _parse_number(row.get(columns['market_value']))
         name = (row.get(columns.get('name', ''), '') or '').strip()
-        if not ISIN_RE.match(isin) or market_value is None or market_value <= 0:
-            if any((v or '').strip() for v in row.values()):
-                log.warning('Skipping %s row without valid ISIN/market value: %r', broker, name or isin)
+        if not ISIN_RE.match(isin):
+            # Broker exports must carry an ISIN (this drops cash/summary rows);
+            # the generic format may identify a holding by name alone.
+            if require_isin or not name:
+                if any((v or '').strip() for v in row.values()):
+                    log.warning('Skipping %s row without valid ISIN/market value: %r',
+                                broker, name or isin)
+                continue
+            if isin:
+                log.warning('%s row %r has invalid ISIN %r; will resolve by name',
+                            broker, name, isin)
+            isin = ''
+        if market_value is None or market_value <= 0:
+            log.warning('Skipping %s row without valid market value: %r', broker, name or isin)
             continue
         quantity = _parse_number(row.get(columns.get('quantity', ''), '')) or 0.0
         currency = (row.get(columns.get('currency', ''), '') or 'SEK').strip().upper() or 'SEK'
@@ -163,7 +188,8 @@ def parse_nordea(text: str, log) -> List[Holding]:
 def parse_generic(text: str, log) -> List[Holding]:
     aliases = {k: [k] for k in GENERIC_HEADER}
     aliases['account'] = ['account']
-    return _parse_with_aliases(text, _detect_delimiter(text), aliases, 'generic', log)
+    return _parse_with_aliases(text, _detect_delimiter(text), aliases, 'generic', log,
+                               require_isin=False)
 
 
 def detect_and_parse(path: Path, log) -> List[Holding]:
@@ -174,7 +200,7 @@ def detect_and_parse(path: Path, log) -> List[Holding]:
     delimiter = _detect_delimiter(text)
     headers = _header_fields(text, delimiter)
 
-    if all(h in headers for h in ('name', 'isin', 'quantity', 'market_value')):
+    if all(h in headers for h in ('name', 'quantity', 'market_value')):
         parser, broker = parse_generic, 'generic'
     elif 'volym' in headers or 'kontonummer' in headers:
         parser, broker = parse_avanza, 'Avanza'
@@ -206,7 +232,9 @@ def load_holdings(portfolio_dir: Path, log) -> List[Holding]:
 
 
 def merge_holdings(holdings: List[Holding], log) -> List[MergedHolding]:
-    """Merge rows for the same ISIN across accounts/brokers, valued in SEK."""
+    """Merge rows for the same instrument across accounts/brokers, valued in SEK.
+    Instruments are identified by ISIN, or by normalized name when a generic
+    row has no ISIN."""
     merged: Dict[str, MergedHolding] = {}
     for holding in holdings:
         rate = sek_rate(holding.currency)
@@ -214,9 +242,10 @@ def merge_holdings(holdings: List[Holding], log) -> List[MergedHolding]:
             log.warning('Unknown currency %s for %s; skipping', holding.currency, holding.name)
             continue
         value_sek = holding.market_value * rate
-        entry = merged.get(holding.isin)
+        key = holding_key(holding.isin, holding.name)
+        entry = merged.get(key)
         if entry is None:
-            merged[holding.isin] = MergedHolding(
+            merged[key] = MergedHolding(
                 name=holding.name,
                 isin=holding.isin,
                 quantity=holding.quantity,

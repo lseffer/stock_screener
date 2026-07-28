@@ -20,6 +20,42 @@ def holding(isin, name='X'):
     return MergedHolding(name=name, isin=isin, quantity=1, market_value_sek=100.0)
 
 
+class TestNameKeyedResolution(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.cache = ResolutionCache(Path(self.tmp.name))
+
+    def test_name_only_holding_resolves_and_caches_by_name_key(self):
+        calls = []
+
+        def resolver(isin, name, tlog):
+            calls.append((isin, name))
+            return ('avanza', '325406')
+
+        resolved, excluded = resolve_all(
+            [holding('', name='Avanza Zero')], {}, self.cache, log, resolver=resolver,
+        )
+        self.assertEqual(resolved, {'name:avanza zero': ('avanza', '325406')})
+        self.assertEqual(calls, [('', 'Avanza Zero')])
+        self.assertEqual(excluded, [])
+        reloaded = ResolutionCache(Path(self.tmp.name))
+        self.assertEqual(reloaded.get('name:avanza zero'), ('avanza', '325406'))
+
+    def test_override_by_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'ticker_overrides.csv').write_text(
+                'isin,ticker\nAvanza Global,avanza:944976\n'
+            )
+            overrides = load_overrides(Path(tmp), log)
+        self.assertEqual(overrides, {'name:avanza global': ('avanza', '944976')})
+        resolved, _ = resolve_all(
+            [holding('', name='Avanza  GLOBAL')], overrides, self.cache, log,
+            resolver=lambda *a: self.fail('resolver should not be called'),
+        )
+        self.assertEqual(resolved['name:avanza global'], ('avanza', '944976'))
+
+
 class TestOverrideParsing(unittest.TestCase):
     def test_yahoo_ticker(self):
         self.assertEqual(parse_override_value('ERIC-B.ST'), ('yahoo', 'ERIC-B.ST'))

@@ -24,12 +24,13 @@ FFILL_LIMIT = 5
 
 def fetch_history(resolved: Dict[str, Resolution], years: int, log,
                   ) -> Tuple[pd.DataFrame, List[Tuple[str, str]]]:
-    """Fetch daily closes per ISIN. Returns (wide frame keyed by ISIN, failures)."""
+    """Fetch daily closes per holding key (ISIN or name key).
+    Returns (wide frame keyed by holding key, failures)."""
     import yfinance as yf
 
     series: Dict[str, pd.Series] = {}
     failures: List[Tuple[str, str]] = []
-    for isin, (source, identifier) in resolved.items():
+    for key, (source, identifier) in resolved.items():
         tlog = bind_ticker(log, '%s:%s' % (source, identifier))
         try:
             if source == 'yahoo':
@@ -39,23 +40,23 @@ def fetch_history(resolved: Dict[str, Resolution], years: int, log,
                 closes = history['Close'].dropna() if history is not None and not history.empty else None
                 if closes is not None and not closes.empty:
                     closes.index = pd.DatetimeIndex(closes.index.tz_localize(None)).normalize()
-                    series[isin] = closes[~closes.index.duplicated(keep='last')]
+                    series[key] = closes[~closes.index.duplicated(keep='last')]
                 else:
-                    failures.append((isin, 'yahoo returned no price history'))
+                    failures.append((key, 'yahoo returned no price history'))
                     tlog.warning('No price history returned')
             elif source == 'avanza':
                 nav = avanza_public.fetch_nav_history(identifier, years, tlog)
                 if nav:
                     idx = pd.DatetimeIndex(pd.to_datetime(sorted(nav)))
-                    series[isin] = pd.Series([nav[d.date()] for d in idx], index=idx)
+                    series[key] = pd.Series([nav[d.date()] for d in idx], index=idx)
                 else:
-                    failures.append((isin, 'avanza returned no NAV history'))
+                    failures.append((key, 'avanza returned no NAV history'))
                     tlog.warning('No NAV history returned')
             else:
-                failures.append((isin, 'unknown price source %s' % source))
+                failures.append((key, 'unknown price source %s' % source))
         except Exception:
             tlog.exception('Price fetch failed')
-            failures.append((isin, 'price fetch failed'))
+            failures.append((key, 'price fetch failed'))
         time.sleep(0.1)
 
     prices = pd.DataFrame(series).sort_index() if series else pd.DataFrame()

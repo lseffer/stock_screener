@@ -30,11 +30,16 @@ Supported files (any *.csv in this folder):
   - Nordea: positions export from netbank
   - Generic: name,isin,quantity,market_value,currency[,account]
       e.g.  Ericsson B,SE0000108656,100,8512.50,SEK,my-isk
+      The isin may be left empty — the holding is then resolved by name via
+      avanza.se's public search (works well for fund names like "Avanza Zero"):
+            Avanza Zero,,300,75431.10,SEK
 
-ticker_overrides.csv pins instruments the auto-resolution cannot find:
+ticker_overrides.csv pins instruments the auto-resolution cannot find. The
+first column is the ISIN, or the holding name for rows without one:
   isin,ticker
   SE0000108656,ERIC-B.ST          # a Yahoo Finance ticker
   SE0001718388,avanza:325406      # an avanza.se orderbook id (fund NAV history)
+  Avanza Global,avanza:944976     # name-keyed override for a no-ISIN row
   SE0000000001,                   # empty ticker = exclude this holding
 
 Then run:  python optimize_portfolio.py
@@ -82,8 +87,9 @@ def print_results(result, names, tickers, values_sek, excluded, total_sek):
         line()
         line('Excluded from optimization:')
         for holding, reason in excluded:
-            line('  - %s (%s): %s' % (holding.name, holding.isin, reason))
-        line('  Pin these in portfolio/ticker_overrides.csv (isin,ticker).')
+            identity = ' (%s)' % holding.isin if holding.isin else ''
+            line('  - %s%s: %s' % (holding.name, identity, reason))
+        line('  Pin these in portfolio/ticker_overrides.csv (isin-or-name,ticker).')
     line()
 
 
@@ -146,22 +152,22 @@ def main():
 
     logger.info('Fetching %d years of daily history for %d instruments...', args.years, len(resolved))
     prices, failures = fetch_history(resolved, args.years, logger)
-    by_isin = {m.isin: m for m in merged}
-    for isin, reason in failures:
-        excluded.append((by_isin[isin], reason))
+    by_key = {m.key: m for m in merged}
+    for key, reason in failures:
+        excluded.append((by_key[key], reason))
 
     try:
         panel, dropped = align_and_clean(prices, args.min_days, logger)
     except ValueError as exc:
         logger.error('%s', exc)
         return 1
-    for isin, reason in dropped:
-        excluded.append((by_isin[isin], reason))
+    for key, reason in dropped:
+        excluded.append((by_key[key], reason))
 
-    included = [by_isin[isin] for isin in panel.columns]
+    included = [by_key[key] for key in panel.columns]
     names = [m.name for m in included]
     values_sek = np.array([m.market_value_sek for m in included])
-    tickers = ['%s:%s' % resolved[m.isin] if resolved[m.isin][0] == 'avanza' else resolved[m.isin][1]
+    tickers = ['%s:%s' % resolved[m.key] if resolved[m.key][0] == 'avanza' else resolved[m.key][1]
                for m in included]
     total_sek = float(values_sek.sum())
     current_weights = values_sek / total_sek

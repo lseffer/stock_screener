@@ -1,0 +1,275 @@
+"""Resolve holdings (by ISIN) to a price source.
+
+A resolution is a (source, identifier) tuple: ('yahoo', 'ERIC-B.ST') or
+('avanza', '<orderbookId>'). Precedence: ticker_overrides.csv, then the local
+resolution cache, then auto-resolution (Yahoo search by ISIN, then avanza.se
+public search — the latter covers Avanza's own funds which Yahoo often lacks).
+
+Negative results are never cached, so a transient search failure is retried on
+the next run. Unresolved holdings are excluded from the optimization and
+reported; add them to portfolio/ticker_overrides.csv to pin them manually.
+"""
+import csv
+import json
+import re
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+from portfolio_opt import avanza_public
+from portfolio_opt.holdings import ISIN_RE, MergedHolding, holding_key
+from utils.config import bind_ticker
+
+Resolution = Tuple[str, str]  # (source, identifier)
+
+OVERRIDES_FILENAME = 'ticker_overrides.csv'
+CACHE_FILENAME = '.ticker_cache.json'
+
+# Preferred Yahoo exchange suffix per ISIN country prefix.
+COUNTRY_SUFFIX = {'SE': '.ST', 'DK': '.CO', 'FI': '.HE', 'NO': '.OL'}
+
+# A bare Morningstar performance id (as found on morningstar.com fund pages,
+# e.g. 0P0001TPAB). Yahoo lists such funds as <id>.<exchange suffix>.
+MORNINGSTAR_ID_RE = re.compile(r'^0P[0-9A-Z]{4,12}$', re.IGNORECASE)
+YAHOO_FUND_SUFFIXES = ['.ST', '.HE', '.CO', '.OL', '.IR', '.F', '.DE', '.L']
+
+
+def expand_yahoo_candidates(symbol: str) -> List[str]:
+    """Candidate Yahoo tickers for ``symbol``. A bare Morningstar id is tried
+    as-is and then with the common European fund exchange suffixes."""
+    symbol = symbol.strip()
+    if MORNINGSTAR_ID_RE.match(symbol):
+        return [symbol] + [symbol + suffix for suffix in YAHOO_FUND_SUFFIXES]
+    return [symbol]
+
+EXCLUDED = ('excluded', '')  # sentinel for deliberate exclusion via empty override
+
+
+def parse_override_value(value: str) -> Optional[Resolution]:
+    """'' -> None (exclude); 'avanza:1234' -> ('avanza', '1234'); else yahoo ticker."""
+    value = (value or '').strip()
+    if not value:
+        return None
+    if value.lower().startswith('avanza:'):
+        return ('avanza', value.split(':', 1)[1].strip())
+    return ('yahoo', value)
+
+
+def load_overrides(portfolio_dir: Path, log) -> Dict[str, Optional[Resolution]]:
+    """Overrides keyed by holding key. The first CSV column may be an ISIN or,
+    for name-only holdings, the fund name exactly as it appears in the export."""
+    path = portfolio_dir / OVERRIDES_FILENAME
+    if not path.exists():
+        return {}
+    overrides: Dict[str, Optional[Resolution]] = {}
+    with open(path, newline='', encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):
+            identifier = (row.get('isin') or row.get('name') or '').strip()
+            if not identifier:
+                continue
+            key = holding_key(identifier, identifier)
+            overrides[key] = parse_override_value(row.get('ticker') or row.get('yahoo_ticker') or '')
+    if overrides:
+        log.info('Loaded %d ticker override(s) from %s', len(overrides), path)
+    return overrides
+
+
+class ResolutionCache:
+    def __init__(self, portfolio_dir: Path):
+        self.path = portfolio_dir / CACHE_FILENAME
+        self._data: Dict[str, Dict[str, str]] = {}
+        if self.path.exists():
+            try:
+                self._data = json.loads(self.path.read_text())
+            except (ValueError, OSError):
+                self._data = {}
+
+    def get(self, isin: str) -> Optional[Resolution]:
+        entry = self._data.get(isin)
+        if entry and entry.get('source') and entry.get('id'):
+            return (entry['source'], entry['id'])
+        return None
+
+    def put(self, isin: str, resolution: Resolution) -> None:
+        self._data[isin] = {'source': resolution[0], 'id': resolution[1]}
+
+    def invalidate(self, key: str) -> None:
+        """Drop a cached resolution that turned out not to deliver prices, so
+        the next run re-resolves instead of reusing a dead ticker."""
+        self._data.pop(key, None)
+
+    def save(self) -> None:
+        self.path.write_text(json.dumps(self._data, indent=2, sort_keys=True))
+
+
+def _yahoo_search(query: str, preferred_suffix: Optional[str], log) -> Optional[str]:
+    import yfinance as yf
+
+    try:
+        quotes = yf.Search(query, max_results=5).quotes or []
+    except Exception:
+        log.warning('Yahoo search failed for %s', query, exc_info=True)
+        quotes = []
+    symbols = [q.get('symbol') for q in quotes if isinstance(q, dict) and q.get('symbol')]
+    if symbols:
+        if preferred_suffix:
+            for symbol in symbols:
+                if symbol.endswith(preferred_suffix):
+                    return symbol
+        return symbols[0]
+    return None
+
+
+def _yahoo_resolve_isin(isin: str, log) -> Optional[str]:
+    import yfinance as yf
+
+    symbol = _yahoo_search(isin, COUNTRY_SUFFIX.get(isin[:2]), log)
+    if symbol:
+        return symbol
+
+    if hasattr(yf, 'Lookup'):
+        try:
+            lookup = yf.Lookup(isin).all
+            if lookup is not None and len(lookup) > 0:
+                return str(lookup.index[0])
+        except Exception:
+            log.debug('Yahoo lookup failed for %s', isin, exc_info=True)
+
+    try:
+        history = yf.Ticker(isin).history(period='5d', auto_adjust=True)
+        if history is not None and not history.empty:
+            return isin
+    except Exception:
+        log.debug('Yahoo direct-ISIN probe failed for %s', isin, exc_info=True)
+    return None
+
+
+def _yahoo_has_history(symbol: str, log) -> bool:
+    import yfinance as yf
+
+    try:
+        history = yf.Ticker(symbol).history(period='1mo', auto_adjust=True)
+        return history is not None and not history.empty
+    except Exception:
+        log.debug('History probe failed for %s', symbol, exc_info=True)
+        return False
+
+
+def _validated(candidates, log) -> Optional[Resolution]:
+    """Accept the first candidate that actually delivers price data. Yahoo
+    search happily returns fund tickers with no price history at all; without
+    this check such a match would be cached and shadow the Avanza fallback."""
+    for resolution in candidates:
+        if resolution is None:
+            continue
+        source, identifier = resolution
+        if source == 'yahoo':
+            accepted = None
+            for symbol in expand_yahoo_candidates(identifier):
+                if _yahoo_has_history(symbol, log):
+                    accepted = symbol
+                    break
+            if accepted is not None:
+                if accepted != identifier:
+                    log.info('Resolved bare Morningstar id %s to Yahoo ticker %s',
+                             identifier, accepted)
+                return ('yahoo', accepted)
+            log.info('Yahoo candidate %s has no price history; trying next source', identifier)
+        elif source == 'avanza':
+            if avanza_public.fetch_nav_history(identifier, 0.5, log):
+                return resolution
+            log.info('Avanza candidate %s returned no NAV history; trying next source', identifier)
+    return None
+
+
+def auto_resolve(isin: str, name: str, log) -> Optional[Resolution]:
+    """Resolve by ISIN when there is one; otherwise by name. Candidates are
+    validated against actual price availability before being accepted.
+
+    Name-only holdings try avanza.se first: fund names like "Avanza Zero" or
+    "Avanza 100" are Avanza's own products and their search matches them
+    exactly, while Yahoo's name search is noisier."""
+
+    def yahoo_isin():
+        symbol = _yahoo_resolve_isin(isin, log)
+        return ('yahoo', symbol) if symbol else None
+
+    def yahoo_name():
+        symbol = _yahoo_search(name, None, log) if name else None
+        return ('yahoo', symbol) if symbol else None
+
+    def avanza(query):
+        def candidate():
+            orderbook_id = avanza_public.search_orderbook_id(query, log) if query else None
+            return ('avanza', orderbook_id) if orderbook_id else None
+        return candidate
+
+    if isin:
+        makers = [yahoo_isin, avanza(isin), avanza(name), yahoo_name]
+    else:
+        makers = [avanza(name), yahoo_name]
+    return _validated((make() for make in makers), log)
+
+
+def probe(query: str, log) -> Optional[Resolution]:
+    """Run the resolution chain for an ad-hoc query and return what it finds.
+
+    The query is treated as an ISIN if it looks like one, as a Yahoo ticker /
+    Morningstar id if it looks like one (also searched as a name if dead), and
+    as a holding name otherwise."""
+    query = query.strip()
+    if ISIN_RE.match(query.upper()):
+        log.info('Probing %s as an ISIN', query.upper())
+        return auto_resolve(query.upper(), '', log)
+    if MORNINGSTAR_ID_RE.match(query) or ('.' in query and ' ' not in query):
+        log.info('Probing %s as a Yahoo ticker / Morningstar id', query)
+        direct = _validated(iter([('yahoo', query)]), log)
+        if direct is not None:
+            return direct
+        log.info('No price history for ticker %s; falling back to name search', query)
+    log.info('Probing %r as a holding name', query)
+    return auto_resolve('', query, log)
+
+
+def resolve_all(merged: List[MergedHolding], overrides: Dict[str, Optional[Resolution]],
+                cache: ResolutionCache, log, resolver=auto_resolve,
+                ) -> Tuple[Dict[str, Resolution], List[Tuple[MergedHolding, str]]]:
+    """Returns ({holding key: resolution}, [(holding, reason) for excluded holdings]).
+
+    Holding keys are ISINs, or normalized-name keys for holdings without one."""
+    resolved: Dict[str, Resolution] = {}
+    excluded: List[Tuple[MergedHolding, str]] = []
+    for holding in merged:
+        key = holding.key
+        tlog = bind_ticker(log, holding.isin or holding.name)
+        if key in overrides:
+            override = overrides[key]
+            if override is None:
+                excluded.append((holding, 'excluded via ticker_overrides.csv'))
+            else:
+                resolved[key] = override
+            continue
+        cached = cache.get(key)
+        if cached is not None:
+            tlog.info('Resolved from cache: %s:%s', *cached)
+            resolved[key] = cached
+            continue
+        resolution = resolver(holding.isin, holding.name, tlog)
+        if resolution is None:
+            tlog.warning('Could not resolve %s to a price source',
+                         '%s (%s)' % (holding.isin, holding.name) if holding.isin else holding.name)
+            excluded.append((holding, 'no price source found'))
+        else:
+            tlog.info('Auto-resolved to %s:%s', *resolution)
+            resolved[key] = resolution
+            cache.put(key, resolution)
+        time.sleep(0.1)
+    cache.save()
+    if excluded:
+        log.warning(
+            'Excluded %d holding(s) with no price source. Pin them manually in '
+            '%s (first column is the ISIN, or the holding name for rows without '
+            'one; ticker is a Yahoo ticker or avanza:<orderbookId>).',
+            len(excluded), OVERRIDES_FILENAME,
+        )
+    return resolved, excluded

@@ -3,3 +3,5 @@ yfinance==1.3.0
 sqlalchemy==2.0.27
 pandas==2.2.1
 polars==1.30.0
+numpy==1.26.4
+scipy==1.13.1

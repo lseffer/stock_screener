@@ -18,7 +18,15 @@ Screens Nordic stocks (Stockholm, Copenhagen, Helsinki, Oslo) using Piotroski F-
 
 ```
 generate_site.py          Entry point. Orchestrates: init DB → run ETL → compute scores → generate site
+optimize_portfolio.py     Local-only portfolio optimizer CLI (see "Portfolio optimizer" below)
 scoring.py                Piotroski F-Score and Magic Formula computation (polars)
+portfolio_opt/
+  holdings.py             Avanza/Nordea/generic CSV position-export parsers, merge by ISIN
+  resolve.py              ISIN → price source resolution (overrides → cache → Yahoo → Avanza public)
+  avanza_public.py        Unauthenticated avanza.se search + fund NAV history client
+  prices.py               Daily price fetch (yfinance / Avanza NAV) + panel alignment
+  optimizer.py            Markowitz math: max-Sharpe, min-variance, efficient frontier (numpy/scipy)
+  report.py               Self-contained HTML report (inline SVG, no JS, offline)
 utils/
   config.py               SQLite engine, Session factory, logger, constants (DB_PATH, OUTPUT_DIR)
   etl_base.py             Abstract ETL base with load_record() and load_records()
@@ -78,6 +86,40 @@ cp _site/data.json web/app/public/data.json && (cd web/app && npm run dev)
 Environment variables (all optional):
 - `STOCK_SCREENER_DB` — SQLite path (default: `stocks.db`)
 - `STOCK_SCREENER_OUTPUT` — site output dir (default: `_site`)
+
+## Portfolio optimizer (local, private)
+
+`python optimize_portfolio.py` runs Markowitz mean-variance optimization (efficient
+frontier, max-Sharpe, min-variance; long-only) over personal holdings. It is fully
+local: it reads broker CSV exports from `portfolio/` (gitignored), fetches ~3 years
+of daily prices on demand (never stored in `stocks.db`), and writes
+`portfolio_report.html` (gitignored, self-contained, no JS/external requests).
+Nothing touches `_site/` or the public GitHub Pages deployment.
+
+- **Input**: drop Avanza and/or Nordea position exports (CSV) into `portfolio/`, or a
+  generic CSV `name,isin,quantity,market_value,currency[,account]`. Format is
+  auto-detected per file; duplicate ISINs across accounts/brokers are merged. In the
+  generic format the ISIN may be left empty — the holding is then resolved by name
+  via avanza.se public search (ideal for fund names like "Avanza Zero"), and
+  merged/cached under a normalized-name key.
+- **Price sources**: stocks/ETFs via yfinance (ISIN → ticker via Yahoo search);
+  mutual funds fall back to avanza.se's public (unauthenticated) search + fund-guide
+  NAV endpoints — this covers Avanza's own funds (Avanza Zero etc.) that Yahoo lacks.
+  Resolutions are cached in `portfolio/.ticker_cache.json`.
+- **Escape hatch**: `portfolio/ticker_overrides.csv` (`isin,ticker`) pins anything
+  auto-resolution misses; the first column is an ISIN or, for name-only rows, the
+  holding name; ticker is a Yahoo ticker or `avanza:<orderbookId>`; an empty ticker
+  excludes the holding. Unresolvable holdings are excluded from the optimization
+  and listed in the report with their value share.
+- **Flags**: `--years`, `--risk-free`, `--max-weight` (per-position cap),
+  `--min-days`, `--portfolio-dir`, `--output`, `--no-cache`, and
+  `--probe QUERY` (diagnostic: resolve one ISIN/name/ticker/Morningstar id and
+  show what price data is found). A bare Morningstar id (e.g. `0P0001TPAB`) as a
+  ticker is automatically tried with the common fund exchange suffixes
+  (`.ST`, `.HE`, `.F`, ...).
+- **FX**: returns are computed on native-currency series; static `utils/fx.py`
+  rates only convert market values to SEK for current weights. FX volatility is
+  not modeled in the covariance.
 
 ## Common tasks
 

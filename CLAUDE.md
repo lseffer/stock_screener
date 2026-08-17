@@ -56,7 +56,10 @@ web/app/                  Vite + React + TypeScript frontend (TanStack Table + V
     styles.css            Single CSS file with light/dark theme via prefers-color-scheme
   public/favicon.png      Favicon copied verbatim into dist/
   dist/                   Build output (gitignored). Copied into _site/ by generate_site.py.
-.github/workflows/screener.yml  Weekly GitHub Actions pipeline (Python + Node build)
+.github/workflows/screener.yml  Weekly ETL job: fetches data, saves stocks-database artifact (no deploy)
+.github/workflows/deploy.yml    Builds frontend + site from the latest stocks-database artifact and
+                                 deploys to Pages. Runs on push to master, after screener.yml succeeds,
+                                 or manually (workflow_dispatch) — replayable without rerunning ETL.
 ```
 
 ## Key design decisions

@@ -1,0 +1,82 @@
+name: Deploy Site
+
+on:
+  push:
+    branches: [master]
+  workflow_run:
+    workflows: ["Stock Screener Pipeline"]
+    types: [completed]
+  workflow_dispatch: # Manual replay, e.g. after a failed/changed Pages deploy
+    inputs:
+      db_run_id:
+        description: 'screener.yml run ID to source stocks.db from (blank = latest successful ETL run)'
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/app/package-lock.json
+
+      - name: Build frontend
+        working-directory: web/app
+        run: |
+          npm ci
+          npm run build
+
+      # This is the data "gathered in the stored artifact": the last database
+      # produced by the scheduled ETL job. No yfinance calls happen here, so
+      # this job (and therefore a deploy) is cheap and replayable at will.
+      - name: Restore database from last ETL run
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: stocks-database
+          workflow: screener.yml
+          run_id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.db_run_id }}
+          workflow_conclusion: success
+          search_artifacts: true
+          if_no_artifact_found: fail
+
+      - name: Generate site from existing database
+        run: python generate_site.py --skip-etl
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

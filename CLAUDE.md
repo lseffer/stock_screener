@@ -112,6 +112,8 @@ Nothing touches `_site/` or the public GitHub Pages deployment.
   excludes the holding. Unresolvable holdings are excluded from the optimization
   and listed in the report with their value share.
 - **Flags**: `--years`, `--risk-free`, `--max-weight` (per-position cap),
+  `--risk-aversion` (λ for the "your target" portfolio maximizing
+  return − (λ/2)·variance; lower = tolerate more volatility, e.g. long horizons),
   `--min-days`, `--portfolio-dir`, `--output`, `--no-cache`, and
   `--probe QUERY` (diagnostic: resolve one ISIN/name/ticker/Morningstar id and
   show what price data is found). A bare Morningstar id (e.g. `0P0001TPAB`) as a

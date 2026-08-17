@@ -66,22 +66,24 @@ def print_results(result, names, tickers, values_sek, excluded, total_sek):
     line('=' * 78)
     line('PORTFOLIO OPTIMIZATION — %d holdings, %s total' % (len(names), _sek(total_sek)))
     line('=' * 78)
-    header = '%-28s %-14s %8s %8s %8s %8s' % ('Holding', 'Source', 'Value%', 'Current', 'MaxShrp', 'MinVar')
+    header = '%-28s %-14s %8s %8s %8s %8s %8s' % ('Holding', 'Source', 'Value%', 'Current', 'MaxShrp', 'MinVar', 'YourTgt')
     line(header)
     line('-' * len(header))
     order = np.argsort(-result.current.weights)
     for i in order:
-        line('%-28s %-14s %7.1f%% %7.1f%% %7.1f%% %7.1f%%' % (
+        line('%-28s %-14s %7.1f%% %7.1f%% %7.1f%% %7.1f%% %7.1f%%' % (
             names[i][:28], tickers[i][:14],
             100 * values_sek[i] / total_sek if total_sek else 0.0,
             100 * result.current.weights[i],
             100 * result.max_sharpe.weights[i],
             100 * result.min_variance.weights[i],
+            100 * result.preferred.weights[i],
         ))
     line('-' * len(header))
     for label, point in (('Current', result.current), ('Max Sharpe', result.max_sharpe),
-                         ('Min variance', result.min_variance)):
-        line('%-14s return %6.1f%%   vol %6.1f%%   Sharpe %6.2f' % (
+                         ('Min variance', result.min_variance),
+                         ('Your target (λ=%.1f)' % result.risk_aversion, result.preferred)):
+        line('%-22s return %6.1f%%   vol %6.1f%%   Sharpe %6.2f' % (
             label, 100 * point.ret, 100 * point.vol, point.sharpe))
     if excluded:
         line()
@@ -129,6 +131,11 @@ def main():
     parser.add_argument('--risk-free', type=float, default=0.02, help='Annual risk-free rate (default: 0.02)')
     parser.add_argument('--output', default='portfolio_report.html', help='HTML report path (default: portfolio_report.html)')
     parser.add_argument('--max-weight', type=float, default=1.0, help='Max weight per holding, 0-1 (default: 1.0)')
+    parser.add_argument('--risk-aversion', type=float, default=2.0,
+                        help='Risk-aversion λ for the "your target" portfolio, which maximizes '
+                             'return − (λ/2)·variance. Lower values tolerate more volatility in '
+                             'exchange for return (long investment horizon); 0 means volatility '
+                             'is ignored entirely, large values approach min-variance. (default: 2.0)')
     parser.add_argument('--min-days', type=int, default=250, help='Preferred minimum common trading days (default: 250)')
     parser.add_argument('--no-cache', action='store_true', help='Ignore cached ISIN->ticker resolutions')
     parser.add_argument('--probe', metavar='QUERY',
@@ -170,6 +177,9 @@ def main():
     if args.max_weight * len(merged) < 1:
         logger.error('--max-weight %.2f is infeasible for %d holdings (cap x holdings must be >= 1)',
                      args.max_weight, len(merged))
+        return 1
+    if args.risk_aversion < 0:
+        logger.error('--risk-aversion must be >= 0')
         return 1
 
     overrides = load_overrides(portfolio_dir, logger)
@@ -215,7 +225,8 @@ def main():
 
     returns = to_returns(panel)
     result = optimize(names, returns.to_numpy(), current_weights,
-                      rf=args.risk_free, max_weight=args.max_weight)
+                      rf=args.risk_free, max_weight=args.max_weight,
+                      risk_aversion=args.risk_aversion)
 
     print_results(result, names, tickers, values_sek, excluded, total_sek)
 

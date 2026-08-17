@@ -94,6 +94,12 @@ body {
   letter-spacing: -0.01em;
 }
 
+.brand-subtitle {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .generation-date {
   display: block;
   color: var(--text-muted);

@@ -17,7 +17,61 @@
             content="#f7f8fa"
             media="(prefers-color-scheme: light)"
         />
-        <title>Nordic Stock Screener</title>
+
+        <title>Nordic Stock Screener — Piotroski F-Score & Magic Formula Investing</title>
+        <meta
+            name="description"
+            content="Free stock screener for Sweden, Norway, Denmark, and Finland (Stockholm, Oslo, Copenhagen, Helsinki exchanges), ranked by Piotroski F-Score, Magic Formula, NCAV, and shareholder yield. Updated weekly, sortable, filterable, exportable to CSV."
+        />
+        <meta
+            name="keywords"
+            content="Nordic stock screener, Swedish stocks, Norwegian stocks, Danish stocks, Finnish stocks, Stockholm stock exchange, Oslo stock exchange, Copenhagen stock exchange, Helsinki stock exchange, Piotroski F-Score, Magic Formula investing, NCAV, value investing"
+        />
+        <meta name="geo.region" content="SE" />
+        <meta name="geo.placename" content="Stockholm, Oslo, Copenhagen, Helsinki" />
+        <link rel="canonical" href="https://lseffer.github.io/stock_screener/" />
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Nordic Stock Screener" />
+        <meta property="og:title" content="Nordic Stock Screener — Piotroski F-Score & Magic Formula Investing" />
+        <meta
+            property="og:description"
+            content="Free stock screener for Sweden, Norway, Denmark, and Finland, ranked by Piotroski F-Score, Magic Formula, NCAV, and shareholder yield. Updated weekly."
+        />
+        <meta property="og:url" content="https://lseffer.github.io/stock_screener/" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Nordic Stock Screener — Piotroski F-Score & Magic Formula Investing" />
+        <meta
+            name="twitter:description"
+            content="Free stock screener for Sweden, Norway, Denmark, and Finland, ranked by Piotroski F-Score, Magic Formula, NCAV, and shareholder yield. Updated weekly."
+        />
+
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Nordic Stock Screener",
+            "url": "https://lseffer.github.io/stock_screener/",
+            "description": "Screener for stocks from Sweden, Norway, Denmark, and Finland (Stockholm, Oslo, Copenhagen, Helsinki exchanges), ranked by Piotroski F-Score, Magic Formula, NCAV, and shareholder yield. Updated weekly.",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Any",
+            "areaServed": [
+                { "@type": "Country", "name": "Sweden" },
+                { "@type": "Country", "name": "Norway" },
+                { "@type": "Country", "name": "Denmark" },
+                { "@type": "Country", "name": "Finland" }
+            ],
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            }
+        }
+        </script>
+
         <!-- Google tag (gtag.js) -->
         <script
             async
@@ -36,6 +90,14 @@
     <!-- Google tag (gtag.js) -->
     <body>
         <div id="root"></div>
+        <noscript>
+            <h1>Nordic Stock Screener</h1>
+            <p>
+                A free screener for stocks from Sweden, Norway, Denmark, and Finland (Stockholm, Oslo,
+                Copenhagen, Helsinki exchanges) ranked by Piotroski F-Score, Magic Formula investing,
+                NCAV, and shareholder yield. Please enable JavaScript to use the interactive table.
+            </p>
+        </noscript>
         <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>

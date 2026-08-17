@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lseffer.github.io/stock_screener/sitemap.xml

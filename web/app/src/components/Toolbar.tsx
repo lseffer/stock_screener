@@ -113,6 +113,7 @@ export function Toolbar({
       <div className="toolbar-top">
         <div className="brand">
           <h1>Nordic Stock Screener</h1>
+          <p className="brand-subtitle">Sweden · Norway · Denmark · Finland</p>
           <span className="generation-date">Updated {generatedAt}</span>
         </div>
         <div className="toolbar-actions">

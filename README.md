@@ -8,8 +8,6 @@ A stock screener for Nordic exchanges (Stockholm, Copenhagen, Helsinki, Oslo), r
 
 **Tech stack:** Python 3.12 | SQLite | Polars | React + TypeScript + TanStack Table | Vite
 
-![](app_screenshot.png?raw=true)
-
 **Screening methods:**
 
 - [Piotroski F-Score](https://en.wikipedia.org/wiki/Piotroski_F-Score) - Financial health evaluation (9 metrics, score 0-9)

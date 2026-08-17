@@ -18,21 +18,21 @@
             media="(prefers-color-scheme: light)"
         />
         <title>Nordic Stock Screener</title>
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-G7T6VYPB89"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+
+            gtag("config", "G-G7T6VYPB89");
+        </script>
     </head>
     <!-- Google tag (gtag.js) -->
-    <script
-        async
-        src="https://www.googletagmanager.com/gtag/js?id=G-G7T6VYPB89"
-    ></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-        gtag("js", new Date());
-
-        gtag("config", "G-G7T6VYPB89");
-    </script>
     <body>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>

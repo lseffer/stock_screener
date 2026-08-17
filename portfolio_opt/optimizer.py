@@ -30,6 +30,8 @@ class OptimizationResult:
     current: PortfolioPoint
     max_sharpe: PortfolioPoint
     min_variance: PortfolioPoint
+    preferred: PortfolioPoint  # max-utility portfolio at the chosen risk aversion
+    risk_aversion: float
     frontier: List[Tuple[float, float]]  # (vol, ret) pairs
 
 
@@ -120,6 +122,23 @@ def max_sharpe(mu: np.ndarray, cov: np.ndarray, rf: float, max_weight: float = 1
     return best if best is not None else min_variance(mu, cov, rf, max_weight)
 
 
+def max_utility(mu: np.ndarray, cov: np.ndarray, rf: float, risk_aversion: float,
+                max_weight: float = 1.0) -> PortfolioPoint:
+    """Maximize quadratic utility U(w) = mu@w - (risk_aversion/2) * w@cov@w.
+
+    risk_aversion (lambda) prices volatility in units of expected return:
+    0 ignores volatility entirely (pure max return), large values approach
+    the min-variance portfolio.
+    """
+    n = len(mu)
+    if n == 1:
+        return _point(np.array([1.0]), mu, cov, rf)
+    w = _solve(lambda w: -(mu @ w) + 0.5 * risk_aversion * (w @ cov @ w), n, max_weight)
+    if w is None:
+        w = np.full(n, 1.0 / n)
+    return _point(w, mu, cov, rf)
+
+
 def _max_return(mu: np.ndarray, cov: np.ndarray, max_weight: float) -> np.ndarray:
     n = len(mu)
     w = _solve(lambda w: -(mu @ w), n, max_weight)
@@ -155,7 +174,7 @@ def efficient_frontier(mu: np.ndarray, cov: np.ndarray, rf: float,
 
 
 def optimize(labels: List[str], daily_returns: np.ndarray, current_weights: np.ndarray,
-             rf: float, max_weight: float = 1.0) -> OptimizationResult:
+             rf: float, max_weight: float = 1.0, risk_aversion: float = 2.0) -> OptimizationResult:
     mu, cov = annualize(daily_returns)
     asset_vols = np.sqrt(np.diag(cov))
     denom = np.outer(asset_vols, asset_vols)
@@ -170,5 +189,7 @@ def optimize(labels: List[str], daily_returns: np.ndarray, current_weights: np.n
         current=_point(current_weights, mu, cov, rf),
         max_sharpe=max_sharpe(mu, cov, rf, max_weight),
         min_variance=min_variance(mu, cov, rf, max_weight),
+        preferred=max_utility(mu, cov, rf, risk_aversion, max_weight),
+        risk_aversion=risk_aversion,
         frontier=efficient_frontier(mu, cov, rf, max_weight=max_weight),
     )

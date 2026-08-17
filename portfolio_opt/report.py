@@ -19,13 +19,13 @@ CSS = """
   color-scheme: light dark;
   --bg: #ffffff; --fg: #1a1d21; --muted: #667085; --line: #e4e7ec;
   --accent: #2563eb; --green: #16a34a; --orange: #ea580c; --asset: #98a2b3;
-  --card: #f9fafb;
+  --purple: #9333ea; --card: #f9fafb;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #101418; --fg: #e6e8eb; --muted: #98a2b3; --line: #2c333a;
     --accent: #60a5fa; --green: #4ade80; --orange: #fb923c; --asset: #667085;
-    --card: #171c22;
+    --purple: #c084fc; --card: #171c22;
   }
 }
 * { box-sizing: border-box; }
@@ -57,6 +57,11 @@ svg .gridline { stroke: var(--line); stroke-dasharray: 2 3; }
 svg .muted { fill: var(--muted); }
 .corr td { text-align: center; padding: 4px 6px; }
 .note { color: var(--muted); font-size: 0.82rem; }
+.method p { margin: 10px 0; }
+.method code {
+  background: var(--card); border: 1px solid var(--line); border-radius: 4px;
+  padding: 1px 5px; font-size: 0.85em; white-space: nowrap;
+}
 footer { margin-top: 36px; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--line); padding-top: 12px; }
 """
 
@@ -106,6 +111,7 @@ def frontier_svg(result: OptimizationResult) -> str:
     points.append((result.current.vol, result.current.ret))
     points.append((result.max_sharpe.vol, result.max_sharpe.ret))
     points.append((result.min_variance.vol, result.min_variance.ret))
+    points.append((result.preferred.vol, result.preferred.ret))
     for i in range(len(result.labels)):
         points.append((float(result.asset_vols[i]), float(result.mu[i])))
     scale = _Scale(points)
@@ -152,6 +158,8 @@ def frontier_svg(result: OptimizationResult) -> str:
         (result.current, 'Current portfolio', 'var(--accent)', 'circle'),
         (result.min_variance, 'Min variance', 'var(--orange)', 'square'),
         (result.max_sharpe, 'Max Sharpe', 'var(--green)', 'diamond'),
+        (result.preferred, 'Your target (λ=%.1f)' % result.risk_aversion,
+         'var(--purple)', 'triangle'),
     ]
     for point, name, color, shape in markers:
         x, y = scale.x(point.vol), scale.y(point.ret)
@@ -164,6 +172,10 @@ def frontier_svg(result: OptimizationResult) -> str:
             parts.append('<rect x="%.1f" y="%.1f" width="12" height="12" fill="%s" '
                          'stroke="var(--bg)" stroke-width="1.5">%s</rect>'
                          % (x - 6, y - 6, color, title))
+        elif shape == 'triangle':
+            parts.append('<path d="M %.1f %.1f L %.1f %.1f L %.1f %.1f Z" '
+                         'fill="%s" stroke="var(--bg)" stroke-width="1.5">%s</path>'
+                         % (x, y - 8, x + 7, y + 6, x - 7, y + 6, color, title))
         else:
             parts.append('<path d="M %.1f %.1f L %.1f %.1f L %.1f %.1f L %.1f %.1f Z" '
                          'fill="%s" stroke="var(--bg)" stroke-width="1.5">%s</path>'
@@ -171,7 +183,9 @@ def frontier_svg(result: OptimizationResult) -> str:
 
     legend_x = MARGIN_L + 16
     legend_items = [('var(--accent)', 'Current'), ('var(--green)', 'Max Sharpe'),
-                    ('var(--orange)', 'Min variance'), ('var(--asset)', 'Individual assets')]
+                    ('var(--orange)', 'Min variance'),
+                    ('var(--purple)', 'Your target (λ=%.1f)' % result.risk_aversion),
+                    ('var(--asset)', 'Individual assets')]
     for i, (color, text) in enumerate(legend_items):
         y = MARGIN_T + 8 + i * 20
         parts.append('<circle cx="%d" cy="%d" r="5" fill="%s"/>' % (legend_x, y, color))
@@ -191,7 +205,8 @@ def _corr_color(value: float) -> str:
 def _summary_cards(result: OptimizationResult, total_value_sek: float) -> str:
     cards = [('Portfolio value (optimized subset)', _sek(total_value_sek), '')]
     for name, point in (('Current', result.current), ('Max Sharpe', result.max_sharpe),
-                        ('Min variance', result.min_variance)):
+                        ('Min variance', result.min_variance),
+                        ('Your target (λ=%.1f)' % result.risk_aversion, result.preferred)):
         cards.append((name, 'Sharpe %.2f' % point.sharpe,
                       'return %s · vol %s' % (_pct(point.ret), _pct(point.vol))))
     return '<div class="summary">%s</div>' % ''.join(
@@ -205,18 +220,20 @@ def _weights_table(result: OptimizationResult, names, values_sek, tickers) -> st
     rows = []
     order = np.argsort(-result.current.weights)
     for i in order:
-        delta = result.max_sharpe.weights[i] - result.current.weights[i]
+        delta = result.preferred.weights[i] - result.current.weights[i]
         rows.append(
             '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
-            '<td class="%s">%+.1f pp</td></tr>'
+            '<td>%s</td><td class="%s">%+.1f pp</td></tr>'
             % (_esc(names[i]), _esc(tickers[i]), _sek(values_sek[i]),
                _pct(result.current.weights[i]), _pct(result.max_sharpe.weights[i]),
-               _pct(result.min_variance.weights[i]),
+               _pct(result.min_variance.weights[i]), _pct(result.preferred.weights[i]),
                'pos' if delta >= 0 else 'neg', 100 * delta)
         )
     return ('<table><thead><tr><th>Holding</th><th>Source</th><th>Value</th>'
-            '<th>Current</th><th>Max Sharpe</th><th>Min var</th><th>Δ to max Sharpe</th>'
-            '</tr></thead><tbody>%s</tbody></table>' % ''.join(rows))
+            '<th>Current</th><th>Max Sharpe</th><th>Min var</th>'
+            '<th>Your target (λ=%.1f)</th><th>Δ current → target</th>'
+            '</tr></thead><tbody>%s</tbody></table>'
+            % (result.risk_aversion, ''.join(rows)))
 
 
 def _stats_table(result: OptimizationResult, names, rf: float) -> str:
@@ -242,6 +259,71 @@ def _corr_table(result: OptimizationResult, short_names) -> str:
         rows.append('<tr><td>%s</td>%s</tr>' % (_esc(name), cells))
     return ('<div class="chart-wrap"><table class="corr"><thead><tr><th></th>%s</tr>'
             '</thead><tbody>%s</tbody></table></div>' % (header, ''.join(rows)))
+
+
+def _methodology_section(result: OptimizationResult, rf: float, n_days: int) -> str:
+    lam = result.risk_aversion
+    return (
+        '<h2>How the numbers are computed</h2>'
+        '<div class="method">'
+
+        '<p><strong>Returns.</strong> For each holding, the %d daily closing prices in '
+        'the data window (native currency) become daily returns '
+        '<code>r<sub>t</sub> = P<sub>t</sub> / P<sub>t−1</sub> − 1</code>. Everything '
+        'below is estimated from these observed returns — no forecasts are involved.</p>'
+
+        '<p><strong>Annualization.</strong> The expected return of each holding is its '
+        'average daily return scaled to a year: <code>μ = 252 · mean(r)</code> '
+        '(252 ≈ trading days per year). Risk is measured the same way: the covariance '
+        'matrix of daily returns, scaled by 252, gives <code>Σ</code>; each holding\'s '
+        'volatility is <code>σ = √Σ<sub>ii</sub></code>. This scaling assumes daily '
+        'returns are independent of each other.</p>'
+
+        '<p><strong>Portfolio arithmetic.</strong> A portfolio is a weight vector '
+        '<code>w</code> (long-only, weights sum to 1). Its expected return is the '
+        'weighted average <code>μ<sub>p</sub> = wᵀμ</code>. Its volatility is '
+        '<code>σ<sub>p</sub> = √(wᵀΣw)</code> — not a weighted average, because the '
+        'covariances in <code>Σ</code> let imperfectly correlated holdings partially '
+        'cancel each other out. That cancellation is the diversification benefit, and '
+        'it is why the frontier bulges left of the individual assets. The Sharpe ratio '
+        'is the excess return earned per unit of volatility: '
+        '<code>(μ<sub>p</sub> − r<sub>f</sub>) / σ<sub>p</sub></code> with the '
+        'risk-free rate <code>r<sub>f</sub> = %s</code>.</p>'
+
+        '<p><strong>The marked portfolios.</strong> <em>Current</em> uses your actual '
+        'market-value weights. <em>Min variance</em> picks the weights that minimize '
+        '<code>σ<sub>p</sub></code>, ignoring returns. <em>Max Sharpe</em> picks the '
+        'weights with the highest Sharpe ratio — the classic “optimal” risky portfolio, '
+        'but note it treats all volatility as equally bad regardless of your horizon. '
+        '<em>Your target</em> instead maximizes the utility '
+        '<code>U(w) = μ<sub>p</sub> − (λ/2) · σ<sub>p</sub>²</code> with your risk '
+        'aversion <code>λ = %.1f</code>, trading expected return against variance at '
+        'the rate you chose. The <em>efficient frontier</em> curve is traced by '
+        'minimizing volatility at each level of expected return between the '
+        'min-variance and max-return portfolios.</p>'
+
+        '<p><strong>Choosing λ.</strong> λ prices volatility in units of expected '
+        'return: at <code>λ = %.1f</code>, accepting 1 extra percentage point of '
+        'variance must pay at least %.1f/2 percentage points of expected return. '
+        '<code>λ = 0</code> ignores volatility entirely and just maximizes expected '
+        'return; large λ (≳ 10) converges to the min-variance portfolio; common '
+        'textbook values are 2–4. With a long horizon there is a case for a low λ: '
+        'the volatility above measures one-year dispersion, and if yearly returns are '
+        'roughly independent, the dispersion of the <em>annualized</em> return over '
+        'T years shrinks like <code>1/√T</code>, so short-term swings matter less '
+        'to a patient investor than the annual numbers suggest. Set it with '
+        '<code>--risk-aversion</code>.</p>'
+
+        '<p class="note"><strong>Caveats.</strong> All inputs are historical '
+        'estimates over one specific window; expected returns (μ) are especially '
+        'noisy, and optimizers amplify that noise by leaning into whatever looked '
+        'best. Treat the optimal weights as a direction, not a prescription. A '
+        'per-position cap (<code>--max-weight</code>) is the main guard against '
+        'over-concentration.</p>'
+
+        '</div>'
+        % (n_days, _pct(rf), lam, lam, lam)
+    )
 
 
 def _excluded_section(excluded, total_sek: float) -> str:
@@ -284,7 +366,8 @@ def render_report(result: OptimizationResult, names, tickers, values_sek,
         '<style>%s</style>'
         '<h1>Portfolio optimization</h1>'
         '<div class="meta">Markowitz mean-variance · long-only · %d holdings · '
-        'data window %s → %s (%d trading days) · risk-free rate %s · generated %s</div>'
+        'data window %s → %s (%d trading days) · risk-free rate %s · '
+        'risk aversion λ=%.1f · generated %s</div>'
         '%s'
         '<h2>Efficient frontier</h2>'
         '<div class="chart-wrap">%s</div>'
@@ -292,13 +375,16 @@ def render_report(result: OptimizationResult, names, tickers, values_sek,
         '<h2>Per-asset statistics</h2>%s'
         '<h2>Correlation matrix</h2>%s'
         '%s'
+        '%s'
         '<footer>Prices: Yahoo Finance and avanza.se public NAV data, native currency; '
         'static FX rates are used only to value current holdings in SEK (FX volatility '
         'is not modeled in the covariance).%s Past performance does not guarantee '
         'future results — mean-variance inputs are historical estimates.</footer>'
         % (CSS, len(names), _esc(window_start), _esc(window_end), n_days, _pct(rf),
-           _esc(generated_at), _summary_cards(result, total_value_sek),
+           result.risk_aversion, _esc(generated_at),
+           _summary_cards(result, total_value_sek),
            frontier_svg(result), _weights_table(result, names, values_sek, tickers),
            _stats_table(result, names, rf), _corr_table(result, short_names),
+           _methodology_section(result, rf, n_days),
            _excluded_section(excluded, grand_total), excluded_note)
     )
